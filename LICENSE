@@ -1,0 +1,55 @@
+APPLE PIE END USER LICENSE AGREEMENT
+
+Copyright (c) 2026 apple-pie.io. All rights reserved.
+
+Apple Pie ("the Software") is proprietary, closed-source software distributed
+in binary form only. By downloading, installing, or using the Software you
+agree to the terms below. If you do not agree, do not install or use it.
+
+1. LICENSE GRANT. apple-pie.io grants you a personal, non-exclusive,
+   non-transferable, revocable license to download, install, and use the
+   Software, in binary form, for your own internal purposes.
+
+2. RESTRICTIONS. Except as expressly permitted by this agreement or by
+   applicable law that cannot be contracted around, you may not, and may not
+   permit others to:
+   a. copy the Software, other than as reasonably necessary to install and
+      run it;
+   b. modify, adapt, translate, or create derivative works of the Software;
+   c. reverse engineer, decompile, disassemble, or otherwise attempt to
+      derive the source code of the Software;
+   d. redistribute, sell, rent, lease, sublicense, or otherwise make the
+      Software available to any third party;
+   e. remove or alter any proprietary notices in or on the Software.
+
+3. OWNERSHIP. The Software is licensed, not sold. apple-pie.io retains all
+   right, title, and interest in and to the Software, including all
+   intellectual property rights. No rights are granted other than those
+   expressly set out in this agreement.
+
+4. THIRD-PARTY TOOLS. The Software operates alongside tools you provide and
+   license separately (such as git, GitHub CLI, Claude Code, and the Android
+   SDK). Your use of those tools is governed by their own terms, and
+   apple-pie.io is not responsible for them.
+
+5. TERMINATION. This license terminates automatically if you breach any of
+   its terms. Upon termination you must stop using the Software and delete
+   all copies. Sections 3 and 6-8 survive termination.
+
+6. NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT
+   WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NON-INFRINGEMENT. YOU USE THE SOFTWARE AT YOUR OWN RISK.
+
+7. LIMITATION OF LIABILITY. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO
+   EVENT SHALL APPLE-PIE.IO BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+   CONSEQUENTIAL, OR EXEMPLARY DAMAGES, OR FOR ANY LOSS OF PROFITS, DATA, OR
+   BUSINESS, ARISING OUT OF OR IN CONNECTION WITH THE SOFTWARE, EVEN IF
+   ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. APPLE-PIE.IO'S TOTAL LIABILITY
+   SHALL NOT EXCEED THE AMOUNT YOU PAID FOR THE SOFTWARE.
+
+8. GENERAL. This agreement is the entire agreement between you and
+   apple-pie.io concerning the Software. If any provision is held
+   unenforceable, the remainder stays in effect.
+
+For questions about this license, visit https://apple-pie.io.
