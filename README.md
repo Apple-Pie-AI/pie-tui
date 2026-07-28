@@ -1,8 +1,16 @@
+
+
 <p align="center">
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
 <p align="center"><em>A native mobile app harness that drives agentic CLIs to run enterprise mobile development cycles.</em></p>
+
+
+
+
+
+
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-proprietary-lightgrey" alt="License: proprietary"></a></p>
 
@@ -10,7 +18,9 @@
 
 You already use an agentic CLI to work tickets by hand: plan the change, make it, run the build and tests, open the PR, repeat. Apple Pie runs that loop for you. Each ticket goes through plan → implement → verify in its own git worktree and comes out the other side as a Pull Request. Run many in parallel, watch them all from one control pane, and get pulled in only when an agent is genuinely stuck. Our own PR counts roughly doubled; now we mostly just review.
 
-<img width="1100" height="679" alt="The Apple Pie dashboard" src="https://github.com/user-attachments/assets/f27ac84a-4fba-44f8-bd2f-891d474a6a9d" />
+https://github.com/user-attachments/assets/3803f102-ad33-466d-ae3d-34b92c121281
+
+
 
 ## What ships today
 
