@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/3803f102-ad33-466d-ae3d-34b92c121281
 | **Tickets** | Jira keys and local markdown files | — |
 | **Review** | GitHub Pull Requests via `gh` | — |
 
-The left column is real and exercised end to end. The right column is not built yet.
+The left column is real and exercised end to end. The right column is where we're headed: **iOS support is under active development, with a preview release coming soon.**
 
 ## How it works
 
