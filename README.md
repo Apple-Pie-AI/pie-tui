@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
 |------|---------------|-------------------|
 | **Agent CLI** | Claude Code | Codex and other agentic CLIs behind the same harness |
 | **Platform** | Android: Gradle builds, emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
-| **Tickets** | Jira keys and local markdown files | — |
+| **Tickets** | Paste it and edit in markdown | Jira, Linear, Slack |
 | **Review** | GitHub Pull Requests via `gh` | — |
 
 The left column is real and exercised end to end. The right column is where we're headed: **iOS support is under active development, with a preview release coming soon.**
@@ -55,8 +55,7 @@ Verification is never faked: the build and tests that run are your project's own
 | [Claude Code](https://claude.ai/download), authenticated | The agent that works your tickets | `claude --version` |
 | `git` | Worktrees, branches, commits | `git --version` |
 | [`gh`](https://cli.github.com), authenticated | Opens and tracks pull requests | `gh auth status` |
-| [Android Studio](https://developer.android.com/studio) | Only for tickets that need an emulator | `pie doctor` |
-| Jira | Optional — local `.md` tickets work without it | `pie doctor` |
+| [Android Studio](https://developer.android.com/studio) | Android development setup | `pie doctor` |
 
 Apple Pie works with your own `git`, `gh`, and `claude` — same binaries, same auth, same config you already use. No separate accounts, no extra setup.
 
@@ -311,14 +310,18 @@ Telemetry is opt-in, asked once during `pie init`. When enabled it sends three e
 
 ## Uninstall
 
+Stop the daemon if it's running:
 ```bash
-# stop the daemon if it's running
 pie stop
+```
 
-# remove pie's home: config, state, cached tickets, worktrees
+Remove pie's home: config, state, cached tickets, worktrees
+```bash
 rm -rf ~/.pie
+```
 
-# remove the binary (whichever path you installed to)
+Remove the binary (whichever path you installed to)
+```bash
 rm -f ~/.local/bin/pie /usr/local/bin/pie
 ```
 
