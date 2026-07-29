@@ -45,31 +45,7 @@ Verification is never faked: the build and tests that run are your project's own
 
 ## Install
 
-macOS and Linux. Windows is not supported.
-
-Grab the binary for your platform from the [latest release](https://github.com/Apple-Pie-AI/pie-tui/releases/latest):
-
-```bash
-# macOS (Apple Silicon)
-curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_darwin_arm64
-
-# macOS (Intel)
-curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_darwin_amd64
-
-# Linux (x86-64)
-curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_linux_amd64
-
-# Linux (arm64)
-curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_linux_arm64
-
-# then, whichever one you downloaded:
-chmod +x pie && sudo mv pie /usr/local/bin/
-pie --version
-```
-
-Versioned archives (`.zip` for macOS, `.tar.gz` for Linux) and a SHA-256 `checksums.txt` are attached to every release. macOS binaries are signed for direct use — `curl` downloads run as-is, but if you download through a browser, clear the quarantine flag with `xattr -d com.apple.quarantine pie`.
-
-Then `pie init` to configure your repo.
+**Prerequisites**
 
 | Prerequisite | Why | Check with |
 |---|---|---|
@@ -80,6 +56,72 @@ Then `pie init` to configure your repo.
 | Jira | Optional — local `.md` tickets work without it | `pie doctor` |
 
 Apple Pie works with your own `git`, `gh`, and `claude` — same binaries, same auth, same config you already use. No separate accounts, no extra setup.
+
+**Single command install**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Apple-Pie-AI/pie-tui/main/install.sh | bash
+```
+
+Works on macOS (Apple Silicon & Intel) and Linux (x86-64 & arm64). 
+
+Installs to
+`~/.local/bin`, no `sudo` needed, and handles macOS Gatekeeper for you. 
+
+Then verify the install:
+
+```bash
+pie --version
+```
+
+Then `cd` into your project's root and configure it:
+
+```bash
+pie init
+```
+
+<details>
+<summary>Manual install</summary>
+
+Download the binary for your platform:
+
+```bash
+# macOS (Apple Silicon)
+curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_darwin_arm64
+# macOS (Intel)
+curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_darwin_amd64
+# Linux (x86-64)
+curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_linux_amd64
+# Linux (arm64)
+curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_linux_arm64
+```
+
+Then install it to your user bin (creates the folder, no `sudo`):
+
+```bash
+mkdir -p ~/.local/bin && mv pie ~/.local/bin/
+```
+
+If `~/.local/bin` isn't on your `PATH` yet:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+On macOS, if the first run is blocked with `zsh: killed` or a Gatekeeper warning,
+clear the download quarantine flag:
+
+```bash
+xattr -d com.apple.quarantine ~/.local/bin/pie 2>/dev/null
+```
+
+```bash
+pie --version
+```
+
+</details>
+
+Versioned archives (`.zip` for macOS, `.tar.gz` for Linux) and a SHA-256 `checksums.txt` are attached to every release. macOS binaries are signed for direct use — `curl` downloads run as-is, but if you download through a browser, clear the quarantine flag with `xattr -d com.apple.quarantine pie`.
 
 ## First steps
 
@@ -93,17 +135,9 @@ claude --version && gh auth status && git --version
 
 Claude Code has to have been launched and signed in at least once. `gh` should say *Logged in*. Android Studio only matters for tickets that need an emulator, so skip it for now.
 
-**2. Install, then confirm the binary works.**
-
-```bash
-curl -fsSL -o pie https://github.com/Apple-Pie-AI/pie-tui/releases/latest/download/pie_darwin_arm64   # pick your platform — see Install above
-chmod +x pie && sudo mv pie /usr/local/bin/
-pie --help
-```
-
 **Check:** `pie --help` prints the command list.
 
-**3. Configure it against your Android repo.**
+**2. Configure it against your Android repo.**
 
 ```bash
 cd ~/path/to/your/android-repo
@@ -114,7 +148,7 @@ The wizard asks, in order: **repo path** (pre-filled with your current directory
 
 **Check:** `ls -l ~/.pie/config.toml` shows a `0600` file.
 
-**4. Run the connectivity check.**
+**3. Run the connectivity check.**
 
 ```bash
 pie doctor
@@ -122,7 +156,7 @@ pie doctor
 
 **Check:** the three required checks — git origin, `claude`, `gh` — pass. The optional emulator checks can fail for now; they only matter once a ticket needs instrumented tests.
 
-**5. Write your first ticket as a markdown file.**
+**4. Write your first ticket as a markdown file.**
 
 ```bash
 cat > ~/first-ticket.md <<'EOF'
@@ -135,7 +169,7 @@ EOF
 
 The ticket id comes from the **filename**: uppercased, with every run of non-alphanumeric characters collapsed to a dash. So `first-ticket.md` becomes `FIRST-TICKET`, and that id names the worktree, the log, and the branch.
 
-**6. Run it — safely.**
+**5. Run it — safely.**
 
 ```bash
 pie run ~/first-ticket.md --dry-run --review-plan
@@ -145,7 +179,7 @@ Five things make this safe to try: no Jira account is involved; `--dry-run` skip
 
 **Check:** run `git status` in your own repo. It's untouched.
 
-**7. Watch it from the dashboard.**
+**6. Watch it from the dashboard.**
 
 ```bash
 pie
@@ -161,7 +195,7 @@ git -C ~/.pie/worktrees/FIRST-TICKET diff     # the change it made
 pie logs FIRST-TICKET                         # the whole session
 ```
 
-**8. Do it for real.** Drop `--dry-run` on a second local ticket to get an actual pull request, or connect Jira and run `pie run PROJ-123`.
+**7. Do it for real.** Drop `--dry-run` on a second local ticket to get an actual pull request, or connect Jira and run `pie run PROJ-123`.
 
 Whichever you pick, the guarantee is the same: **it stops at `review`. Apple Pie never merges anything.** When you're done experimenting, press <kbd>x</kbd> on a ticket in the TUI to stop it and remove its worktree.
 
@@ -272,20 +306,25 @@ Telemetry is opt-in, asked once during `pie init`. When enabled it sends three e
 | A worktree is wedged | Press <kbd>x</kbd> in the TUI to stop and clean up, then re-run |
 | macOS blocks the binary | You downloaded through a browser — `xattr -d com.apple.quarantine /usr/local/bin/pie` |
 
-## Why we built it
-
-Our teams are measured by PRs merged. We ran Claude Code agents in parallel with git worktrees to keep up, and ended up supervising every one of them: terminals, branches, plan mode, the emulator, PR descriptions. Apple Pie automates that toil.
-
 ## Uninstall
 
 ```bash
-pie stop 2>/dev/null                              # stop background housekeeping if it's running
-sudo rm /usr/local/bin/pie                        # remove the binary
-rm -rf ~/.pie                                     # config, state, logs, worktrees
-security delete-generic-password -s pie 2>/dev/null   # macOS: any stored keys
+# stop the daemon if it's running
+pie stop
+
+# remove pie's home: config, state, cached tickets, worktrees
+rm -rf ~/.pie
+
+# remove the binary (whichever path you installed to)
+rm -f ~/.local/bin/pie /usr/local/bin/pie
 ```
 
-Everything Apple Pie writes lives under `~/.pie`, so that's the whole of it.
+On macOS, also remove any stored tokens from the Keychain (run until it reports
+"could not be found"):
+
+```bash
+security delete-generic-password -s pie 2>/dev/null
+```
 
 ## License
 
