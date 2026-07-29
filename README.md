@@ -18,7 +18,10 @@
 
 You already use an agentic CLI to work tickets by hand: plan the change, make it, run the build and tests, open the PR, repeat. Apple Pie runs that loop for you. Each ticket goes through plan → implement → verify in its own git worktree and comes out the other side as a Pull Request. Run many in parallel, watch them all from one control pane, and get pulled in only when an agent is genuinely stuck. Our own PR counts roughly doubled; now we mostly just review.
 
-https://github.com/user-attachments/assets/3803f102-ad33-466d-ae3d-34b92c121281
+
+https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
+
+
 
 
 
