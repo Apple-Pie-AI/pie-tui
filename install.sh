@@ -23,9 +23,15 @@ esac
 # ── latest release ────────────────────────────────────────────────────────────
 
 echo "Fetching latest release…"
-LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
-  | grep '"tag_name"' \
-  | sed -E 's/.*"([^"]+)".*/\1/')
+# PIE_VERSION pins a specific release (e.g. a beta prerelease, which GitHub's
+# "latest" deliberately never resolves to). Unset = the newest stable release.
+if [ -n "${PIE_VERSION:-}" ]; then
+  LATEST="$PIE_VERSION"
+else
+  LATEST=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" \
+    | grep '"tag_name"' \
+    | sed -E 's/.*"([^"]+)".*/\1/')
+fi
 
 if [ -z "$LATEST" ]; then
   echo "Error: could not determine latest release."
