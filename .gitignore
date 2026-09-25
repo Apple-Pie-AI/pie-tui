@@ -1,0 +1,22 @@
+# Binaries
+/pie
+*.exe
+
+# GoReleaser build output
+/dist/
+
+# Go
+/vendor/
+*.test
+*.out
+
+# Local runtime data
+/.agent/
+
+# Claude Code session-local state (skills/ stays tracked - shared project skills)
+/.claude/worktrees/
+/.claude/scheduled_tasks.lock
+/.claude/settings.local.json
+
+# macOS
+.DS_Store

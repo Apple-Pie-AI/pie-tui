@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Apple Pie setup — build and install the `pie` binary.
+# Run directly or let Claude Code run it via the one-paste install prompt.
+set -euo pipefail
+
+INSTALL_DIR="$HOME/.local/bin"
+
+# ── prerequisites ──────────────────────────────────────────────────────────────
+
+need() {
+  if ! command -v "$1" &>/dev/null; then
+    echo "Error: '$1' not found in PATH."
+    echo "  $2"
+    exit 1
+  fi
+}
+
+need go  "Install Go 1.24+ from https://go.dev/dl/"
+need git "Install git from https://git-scm.com/"
+need claude "Install Claude Code from https://claude.ai/download (must be authenticated)"
+
+# Go version gate — need 1.24+
+GO_VER=$(go version | grep -oE '[0-9]+\.[0-9]+' | head -1)
+GO_MAJOR=${GO_VER%%.*}
+GO_MINOR=${GO_VER#*.}
+if [ "$GO_MAJOR" -lt 1 ] || { [ "$GO_MAJOR" -eq 1 ] && [ "$GO_MINOR" -lt 24 ]; }; then
+  echo "Error: Go 1.24+ required (found $GO_VER)."
+  echo "  Download the latest from https://go.dev/dl/"
+  exit 1
+fi
+
+# ── build ──────────────────────────────────────────────────────────────────────
+
+mkdir -p "$INSTALL_DIR"
+
+echo "Building Apple Pie…"
+go build -ldflags "-s -w" -o "$INSTALL_DIR/pie" .
+echo "Installed → $INSTALL_DIR/pie"
+
+# ── PATH hint ──────────────────────────────────────────────────────────────────
+
+if ! echo ":$PATH:" | grep -q ":$INSTALL_DIR:"; then
+  # Detect shell config file
+  if [ -f "$HOME/.zshrc" ]; then RC="$HOME/.zshrc"
+  elif [ -f "$HOME/.bashrc" ]; then RC="$HOME/.bashrc"
+  else RC="$HOME/.profile"; fi
+
+  echo ""
+  echo "Add $INSTALL_DIR to your PATH (it isn't there yet):"
+  echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> $RC && source $RC"
+  echo ""
+fi
+
+# ── done ───────────────────────────────────────────────────────────────────────
+
+echo ""
+echo "Done. Next step:"
+echo "  pie init     # configure your repo and check connectivity"
+echo ""
+echo "Or open the dashboard:"
+echo "  pie          # live TUI hub (run tickets, watch progress, answer questions)"

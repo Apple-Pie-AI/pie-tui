@@ -1,0 +1,39 @@
+   apple pie · PR #482 · fix 1 of 2 the answer posts from this card - code ships only from the last one
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+   │ maria · 0s ago
+   │ bump the version
+
+   T H E   A G E N T   D E C L I N E D
+   │ version bumps are out of scope for this PR
+
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+   ╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+   │  POST THE ANSWER & RESOLVE        no code change - replies with the agent's answer, right now  │
+   ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+     Reply & resolve                answer it yourself, no agent                                     
+     Ask for a different fix        say what's wrong and the agent redoes it                         
+     Edit the reply                 change the wording before it posts                               
+     Skip this one                  leave the comment unanswered                                     
+
+   W H A T   C H A N G E D
+     reading the worktree diff…
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
+   ↑↓ move   enter choose   ←→ other fixes   esc dashboard                                           
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
