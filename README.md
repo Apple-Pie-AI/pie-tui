@@ -4,7 +4,7 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><em>A native mobile app harness that drives agentic CLIs to run enterprise mobile development cycles.</em></p>
+<p align="center"><em>An AI Harness for Android Development</em></p>
 
 
 
