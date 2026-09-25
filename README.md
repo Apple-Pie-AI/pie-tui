@@ -2,22 +2,63 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><em>A native mobile app harness that drives agentic CLIs to run enterprise mobile development cycles.</em></p>
+<p align="center"><strong>Run a team of coding agents on your Android repo, from one terminal.</strong><br><em>Ticket in, reviewed pull request out. You stay the reviewer.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-You already use an agentic CLI to work tickets by hand: plan the change, make it, run the build and tests, open the PR, repeat. Apple Pie runs that loop for you. Each ticket goes through plan → implement → verify in its own git worktree and comes out the other side as a Pull Request. Run many in parallel, watch them all from one control pane, and get pulled in only when an agent is genuinely stuck. My own PR count roughly doubled; now I mostly just review.
+Apple Pie is an open-source harness for Android (and Kotlin Multiplatform) teams that already use Claude Code. Hand it a ticket. It plans the change, makes it in an isolated git worktree, runs your project's real build and tests, and parks the result for your review before any PR exists. Run several at once. A single dashboard shows you only the tickets that need a decision from you.
+
+It's local, free, and runs on the Claude Code subscription you already have. If your company has approved Claude Code, there's nothing new to approve.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Apple-Pie-AI/pie-tui/main/install.sh | bash
+```
 
 https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
+
+## The problem
+
+Writing code has largely stopped being the bottleneck. After nine years of Android work, most of my day goes to running the agents instead:
+
+1. **Orchestration.** One terminal, one worktree, and one Android Studio window per agent, and I keep switching between them.
+2. **Model selection.** Planning, implementing, and reviewing each call for a different model, and switching between them is manual.
+3. **Reviewing output.** One Android Studio window per worktree, one GitHub tab per diff, plus one terminal to ask an AI to review each change.
+4. **Feedback loops.** When a reviewer comments, I have to tell the agent to fetch the comments and address them.
+5. **PR management.** Once the code is ready, I track PRs, CI, and review threads across every task.
+
+No single step is hard. Together they eat the time the job actually needs: checking that the agent's code won't break anything and fits the architecture and conventions of the codebase.
+
+## What Apple Pie does
+
+Three workflows, all in one keyboard-driven TUI:
+
+- **Ticket → pull request.** Start from a Jira key or a markdown file. The agent plans, implements, adversarially reviews its own diff, and verifies with your real build. [How it works](#how-it-works)
+- **Review before the PR.** A split view shows the changed files beside their diff. Send feedback with `@file` references, as you would in Claude Code, and the agent iterates. You can also talk the change through in a plan-mode chat, or approve it and create the PR. [Staying in control](#staying-in-control)
+- **Reviewer comments → fixes.** Apple Pie pulls unresolved review threads through `gh`. You pick which ones the agent addresses, preview each fix's diff and its drafted reply, and nothing is pushed or posted until you approve. [When the reviewers come back](#when-the-reviewers-come-back)
+
+Anything that needs you, such as a command outside the allowlist, a blocking question, or a change ready for review, lands in a **NEEDS YOU** section of the dashboard. Everything else keeps running in the background.
+
+What makes that workable day to day:
+
+| | |
+|---|---|
+| **One worktree per ticket** | Every task and PR gets its own worktree. From the dashboard you can resume it, open it in Android Studio (<kbd>o</kbd>), or reopen its Claude Code session (<kbd>c</kbd>) |
+| **Approvals in the dashboard** | Commands outside the allowlist pause the agent and ask you in place: *Allow once*, *Allow & remember*, or *Deny*. Your Claude Code and org-managed rules still apply on top |
+| **Per-stage models** | Pick a model for each stage: plan, implement, review, verify, and comment fixes. Set it once in config, no switching mid-task |
+| **Emulator when it's needed** | The plan decides whether a ticket needs instrumented tests. Parallel agents share one AVD through a semaphore, and unit-only tickets never boot it |
+| **Verified, not vibes** | No certified green build means no PR. The ticket goes to NEEDS YOU instead |
+| **Never merges** | Every run stops at `review`. No code path in the project merges a pull request |
+
+The goal isn't agents running unchecked. It's making it practical to run several at once while you stay the one who decides what ships.
 
 ## What ships today
 
 | Area | Shipped today | Where it's headed |
 |------|---------------|-------------------|
 | **Agent CLI** | Claude Code, driven through `claude -p` | Codex and other agentic CLIs behind the same harness |
-| **Platform** | Android: Gradle builds, AVD/emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
+| **Platform** | Android and KMP on Gradle: AVD/emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
 | **Tickets** | Jira keys and local markdown files | — |
 | **Review** | GitHub Pull Requests via `gh` | — |
 
@@ -470,9 +511,32 @@ For a **published, tagged release** — cross-platform archives (`.tar.gz` for L
 
 Deeper detail — the package map, the agent's JSON contract, the worktree strategy, and the emulator semaphore — is in **[docs/architecture.md](docs/architecture.md)**. Release process is in [RELEASE.md](RELEASE.md).
 
+## FAQ
+
+**Does it need Claude Code?**
+Yes. Every stage runs through `claude -p` on your existing subscription or API key. There's no Apple Pie account and no separate key. Adapters for other agentic CLIs, such as Codex, are planned but not built.
+
+**Is anything sent to a server?**
+No. There's no Apple Pie server. Plans, logs, state, and worktrees all live under `~/.pie` on your machine. The only thing that ever leaves is opt-in telemetry: three anonymous events, with no code, paths, or ticket content ([details](#cost-telemetry-and-privacy)).
+
+**Is it open source?**
+Yes, MIT-licensed. Everything in the binary is in this repo.
+
+**Why not just prompt Claude Code directly?**
+You can, and Apple Pie still does, under the hood. What it adds is everything around the prompt: a worktree per ticket, a verify stage that won't let an unverified change become a PR, a review gate before anything is pushed, a PR-comment triage loop, a shared emulator, and one dashboard for all of it. Those are the parts you'd otherwise run by hand across terminals.
+
+**Why Android-specific?**
+A general ticket-to-PR agent doesn't know what verifying an Android change means: which changes need instrumented tests on an emulator, how to share one AVD between parallel agents, or how to hand a worktree to Android Studio. See [Why Android-native matters](#why-android-native-matters).
+
+**Does it work with build systems other than Gradle?**
+Not today. The agent runs your project's own build commands, including company wrapper scripts and KMP modules, but the prompts and default allowlist assume a Gradle project.
+
+**Why "Apple Pie"?**
+I like apple pie, the dessert. It has nothing to do with Apple or iOS. This is an Android tool through and through.
+
 ## Why I built it
 
-My company measures productivity by PRs merged. I ran Claude Code agents in parallel with git worktrees to keep up, and ended up supervising every one of them: terminals, branches, plan mode, the emulator, PR descriptions. Apple Pie automates that toil.
+My company measures productivity by PRs merged. I ran Claude Code agents in parallel with git worktrees to keep up, and ended up supervising every one of them: terminals, branches, plan mode, the emulator, PR descriptions, review comments. Apple Pie automates that toil. My own PR count roughly doubled, and now I mostly just review.
 
 ## Uninstall
 
