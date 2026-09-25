@@ -1,0 +1,43 @@
+name: Release
+
+# Manual fallback only. The primary release path is `scripts/release.sh`, run
+# locally and authenticated with `gh auth token` (see RELEASE.md). Both paths
+# run GoReleaser, so triggering on tag push here would race the local script
+# for the same release — hence workflow_dispatch, not `push: tags`.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release (e.g. v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Binaries are obfuscated via scripts/garble.sh (Decision 18), so the
+      # runner needs garble on PATH before GoReleaser invokes it.
+      - name: Install garble
+        run: go install mvdan.cc/garble@latest
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Injected into the binary via ldflags (see .goreleaser.yaml). Absent
+          # secret = empty = telemetry compiled out, not a failed release.
+          POSTHOG_API_KEY: ${{ secrets.POSTHOG_API_KEY }}

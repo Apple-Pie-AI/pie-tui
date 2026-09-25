@@ -1,0 +1,34 @@
+   A P P L E   P I E   review comments                                        ● synced 1m ago · 12:01
+   PR #482 · ai/pie-207-login-retry · 5 comments from 5 reviewers
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+   [~] ▸ all comments (5)                                                       4 checked · 1 skipped
+   [x] ▸ LoginViewModel.kt:42  Don't swallow the exception here — this hides real aut…          alice
+   [x] ▸ LoginViewModel.kt:57  viewModelScope.launch without a CoroutineExceptionHand…   coderabbitai
+   [x] ▸ LoginViewModel.kt:88  rename `loading` to `isLoading` for consistency with t…          ✎ bob
+   [ ] ▸ build.gradle.kts:31   okhttp 4.9.3 is affected by CVE-2023-0833. Bump to 4.1…     sonarcloud
+   [x] ▸ summary               Overall this is close, but the retry policy should liv…          carol
+
+   ╭────────────────────────────────────────────────────────────────────────────────────────────────╮
+   │  ▶  FIX 4 COMMENTS AND PREVIEW THE FIXES          4 checked · nothing ships until you approve  │
+   ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+   all comments on PR #482 · 4 of 5 checked - enter checks or unchecks every one
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   ──────────────────────────────────────────────────────────────────────────────────────────────────
+   ↑↓ move   enter check or uncheck all   esc back                                                   

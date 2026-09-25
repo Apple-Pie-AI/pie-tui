@@ -1,0 +1,78 @@
+# GoReleaser config (Decision 17). Build/release with: goreleaser release --clean
+version: 2
+project_name: pie
+
+before:
+  hooks:
+    - go mod tidy
+
+# The telemetry key is injected here rather than defaulted in Go source, so a
+# plain `go build .` from a checkout never reports into the production dataset.
+# The template defaults it to empty, which keeps `make snapshot` working on a
+# machine that has no key - that build simply has telemetry compiled out.
+env:
+  - POSTHOG_API_KEY={{ if index .Env "POSTHOG_API_KEY" }}{{ .Env.POSTHOG_API_KEY }}{{ end }}
+
+builds:
+  - id: pie
+    binary: pie
+    main: .
+    # Every published binary is obfuscated (Decision 18). GoReleaser calls this
+    # wrapper as its build `tool` (`<tool> build …`); the wrapper prepends
+    # garble's flags before `build`. Set PIE_NO_OBFUSCATE=1 to fall back to plain
+    # `go` for fast local snapshots. (`tool` replaced the deprecated `gobinary`.)
+    tool: "./scripts/garble.sh"
+    env:
+      - CGO_ENABLED=0       # pure-Go sqlite driver → static binaries; also what garble wants
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X github.com/Apple-Pie-AI/pie-tui/cmd.version={{.Version}} -X github.com/Apple-Pie-AI/pie-tui/internal/telemetry.APIKey={{ .Env.POSTHOG_API_KEY }}
+    hooks:
+      post:
+        # Ad-hoc codesign macOS binaries so Gatekeeper doesn't kill them on
+        # Sonoma/Sequoia. The `if` skips Linux ELF artifacts but still fails
+        # the build if codesign errors on a Mach-O - never ship unsigned.
+        - cmd: sh -c 'if file "$1" | grep -q Mach-O; then codesign --sign - --force "$1"; fi' -- "{{ .Path }}"
+
+archives:
+  - id: dist
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    # Linux ships as a tarball; macOS and Windows as zip (each platform's native
+    # archive convention). Windows is not a build target today — internal/proc,
+    # agent, emulator and secrets use unix-only syscalls — so no Windows archive
+    # is produced yet; the override is here for when those packages are ported.
+    formats: [tar.gz]
+    format_overrides:
+      - goos: darwin
+        formats: [zip]
+      - goos: windows
+        formats: [zip]
+  - id: raw
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    formats: [binary]
+
+checksum:
+  name_template: "checksums.txt"
+
+# Ad-hoc codesigning of the macOS binaries (set up notarization separately if needed).
+# signs:
+#   - artifacts: binary
+
+# Homebrew tap - uncomment once Apple-Pie-AI/homebrew-pie repo exists
+# brews:
+#   - name: pie
+#     ids: [dist]
+#     repository:
+#       owner: Apple-Pie-AI
+#       name: homebrew-pie
+#     homepage: "https://apple-pie.io"
+#     description: "Apple Pie - orchestrate mobile app development loops with agentic CLIs"
+#     license: "MIT"
+#     install: |
+#       bin.install "pie"
+#     test: |
+#       system "#{bin}/pie", "--version"
+
+release:
+  draft: false

@@ -1,0 +1,34 @@
+  A P P L E   P I E   review comments                  ● synced 1m ago · 12:01
+  PR #482 · ai/pie-207-login-retry · 5 comments from 5 reviewers
+  ────────────────────────────────────────────────────────────────────────────
+
+  [~] ▸ all comments (5)                                 4 checked · 1 skipped
+  [x] ▸ LoginViewModel.kt:42  Don't swallow the exception here…          alice
+  [x] ▸ LoginViewModel.kt:57  viewModelScope.launch without a …   coderabbitai
+  [x] ▸ LoginViewModel.kt:88  rename `loading` to `isLoading` …          ✎ bob
+  [ ] ▸ build.gradle.kts:31   okhttp 4.9.3 is affected by CVE-…     sonarcloud
+  [x] ▸ summary               Overall this is close, but the r…          carol
+
+  ╭──────────────────────────────────────────────────────────────────────────╮
+  │  ▶  FIX 4 COMMENTS AND PREVIEW THE FIXES   4 checked · nothing ships u…  │
+  ╰──────────────────────────────────────────────────────────────────────────╯
+
+  app/src/main/java/com/acme/LoginViewMode…  github.com/…/482#discussion_r5511
+
+   ┆ @@ -39,4 +42,4 @@ class LoginViewModel {
+   ┆    42       fun login() {                                                
+   ┆       -         emit(Error)                                              
+   ┆    43 +         emit(Error(e))                                           
+   ┆    44       }                                                            
+    (GitHub's excerpt - checkout the branch to see the code below this line)
+
+  ▎  alice · block
+  ▎    Don't swallow the exception here — this hides real auth failures from
+  ▎    Crashlytics. Log it and rethrow.                                     
+
+  your instruction   none — enter opens the menu to write one
+
+
+
+  ────────────────────────────────────────────────────────────────────────────
+  ↑↓ move   enter open the menu   esc back                                    
