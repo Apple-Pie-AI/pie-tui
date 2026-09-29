@@ -108,7 +108,8 @@ a Codex / non-Claude agent adapter, and any non-Android platform (iOS, simulator
    `-tiny` intentionally strips file:line info (crash telemetry loses stack detail - the
    point is "no easy traces"). **garble needs a real GOROOT** - the `GOTOOLCHAIN` toolchain-
    download mechanism fails (`overlay ... must not be replaced` under GOMODCACHE), so install
-   a proper `go1.26.2` SDK via `golang.org/dl`. No UPX/packing (breaks macOS codesign).
+   a proper SDK via `golang.org/dl` - currently `go1.27.1`, because garble v0.18.0 requires Go 1.27+
+   even though `go.mod` only asks for 1.26.2 (see RELEASE.md). No UPX/packing (breaks macOS codesign).
 
 ## Skill routing
 
