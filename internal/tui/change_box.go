@@ -67,6 +67,7 @@ func (m monitorModel) openChangeBox(mention string, origin changeBoxOrigin) (tea
 	c := &m.change
 	c.boxOrigin = origin
 	c.mode = chBox
+	c.chatCompact = false
 	if mention != "" {
 		insertMention(c.draft, mention)
 	}

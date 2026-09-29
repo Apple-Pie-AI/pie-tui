@@ -54,6 +54,38 @@ func TestChangeDiscussFullScreenHidesTheFileList(t *testing.T) {
 	}
 }
 
+// Entering the screen focuses the box but keeps the split view even when a
+// conversation exists; re-entering the box yourself, or sending, goes full.
+func TestChangeEntryFocusKeepsSplitViewWithTranscript(t *testing.T) {
+	m := changeModel(t)
+	sess, _ := m.store.Get("C-1")
+	mm, _ := m.openChangeView(*sess)
+	m = mm.(monitorModel)
+	m.change.files = []changeFile{{path: "a/One.kt", status: "mod"}}
+	m.change.transcript = longTranscript(4)
+	if m.change.mode != chBox || m.change.discussFullScreen() {
+		t.Fatalf("entry: mode=%v full=%v, want the focused box in the split view", m.change.mode, m.change.discussFullScreen())
+	}
+	if out := stripAnsiStr(m.View()); !strings.Contains(out, "a/One.kt") {
+		t.Fatalf("entry must keep the file list on screen:\n%s", out)
+	}
+
+	sent := m
+	sent.change.discussing = true // a round already in flight: send queues, no spawn
+	sent = chType(t, sent, "why this?")
+	got, _ := sent.sendFeedback()
+	if sent = got.(monitorModel); !sent.change.discussFullScreen() {
+		t.Fatal("sending from the entry box must switch to the full-screen chat")
+	}
+
+	m = chPress(t, m, "esc")
+	m.change.cursor = m.change.ctaAt()
+	m = chPress(t, m, "down")
+	if !m.change.discussFullScreen() {
+		t.Fatal("re-entering the box yourself must show the full-screen chat, as before")
+	}
+}
+
 // PgUp/PgDown scroll the transcript while the box is focused - free keys
 // today (see updateChangeBox), only meaningful once the full-screen chat is
 // showing. Starting at the tail (-1), one PgUp must move away from it and
