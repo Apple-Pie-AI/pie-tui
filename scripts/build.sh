@@ -12,9 +12,9 @@
 #   --clean         wipe the mode's dist dir first
 #   --version V     override the version string (default: git describe)
 #
-# `prod` needs a real go SDK matching go.mod on PATH, because garble can't use
-# the GOTOOLCHAIN auto-download path (Decision 18). This script finds one via
-# the `goX.Y.Z` golang.org/dl shim or ~/sdk/goX.Y.Z and puts it on PATH for you.
+# `prod` needs a real go SDK (garble can't use GOTOOLCHAIN downloads, Decision 18)
+# new enough for go.mod and garble. This script puts the newest one it finds -
+# your `go`, or ~/sdk/go* from golang.org/dl - on PATH for you. See RELEASE.md.
 set -euo pipefail
 
 # ── config (edit these to change defaults) ──────────────────────────────────
@@ -65,27 +65,37 @@ if [ "$WANT_WIN" = 1 ]; then
 fi
 [ "${#TARGETS[@]}" -gt 0 ] || die "no buildable targets selected"
 
-# ── toolchain: garble (prod) needs a real SDK matching go.mod on PATH ────────
+# ── toolchain: the newest real SDK that satisfies go.mod ────────────────────
+# Newest, not an exact go.mod match: garble only supports recent Go releases,
+# so its minimum is usually above go.mod's (garble v0.18.0 needs 1.27+).
 want_go="$(awk '/^go /{print $2; exit}' go.mod)"   # e.g. 1.26.2
+version_ge() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]; }
 resolve_sdk() {
-  go version 2>/dev/null | grep -q "go${want_go} " && return 0
-  if command -v "go${want_go}" >/dev/null 2>&1; then
-    local r; r="$("go${want_go}" env GOROOT 2>/dev/null || true)"
-    [ -n "$r" ] && [ -x "$r/bin/go" ] && { PATH="$r/bin:$PATH"; export PATH; return 0; }
-  fi
-  [ -x "$HOME/sdk/go${want_go}/bin/go" ] && { PATH="$HOME/sdk/go${want_go}/bin:$PATH"; export PATH; return 0; }
-  return 1
+  local gobin info root v best="" best_v=""
+  for gobin in "$(command -v go 2>/dev/null || true)" "$HOME"/sdk/go*/bin/go; do
+    [ -x "$gobin" ] || continue
+    # Outside the module and GOTOOLCHAIN=local, so go reports its own SDK
+    # instead of switching to (or refusing for) the version go.mod names.
+    info="$(cd / && GOTOOLCHAIN=local "$gobin" env GOROOT GOVERSION 2>/dev/null)" || continue
+    root="$(printf '%s\n' "$info" | sed -n 1p)"
+    v="$(printf '%s\n' "$info" | sed -n 2p | sed 's/^go//')"
+    case "$root" in *pkg/mod/golang.org/toolchain*) continue ;; esac   # downloaded, not real
+    [ -n "$v" ] && version_ge "$v" "$want_go" || continue
+    if [ -z "$best_v" ] || version_ge "$v" "$best_v"; then best="$root/bin" best_v="$v"; fi
+  done
+  [ -n "$best" ] || return 1
+  PATH="$best:$PATH"; export PATH
 }
 
 if resolve_sdk; then
   export GOTOOLCHAIN=local
 elif [ "$MODE" = prod ]; then
-  die "prod build needs a go${want_go} SDK, but none was found.
-  install it:  go install golang.org/dl/go${want_go}@latest && go${want_go} download
-  (garble can't use the GOTOOLCHAIN auto-download path — Decision 18.)"
+  die "prod build needs a real Go SDK >= ${want_go} that garble supports, but none was found.
+  install one:  go install golang.org/dl/go1.27.1@latest && go1.27.1 download
+  (garble can't use the GOTOOLCHAIN auto-download path — Decision 18; see RELEASE.md.)"
 else
   export GOTOOLCHAIN=auto   # test build may auto-download the toolchain
-  echo "note: no go${want_go} SDK found; GOTOOLCHAIN=auto will fetch it for the test build." >&2
+  echo "note: no Go SDK >= ${want_go} found; GOTOOLCHAIN=auto will fetch one for the test build." >&2
 fi
 
 [ "$MODE" = prod ] && ! command -v garble >/dev/null 2>&1 && \
