@@ -50,6 +50,7 @@ func (m monitorModel) sendDiscussMessage(s store.Session, text string) (tea.Mode
 	c := &m.change
 	m.persistDraft()
 	c.draft.SetValue("")
+	c.chatCompact = false
 	if c.discussing {
 		m.notice = "sent - the agent will pick it up shortly"
 		return m, nil
@@ -141,9 +142,10 @@ func (m monitorModel) renderChangeTranscript(cw, maxLines int) []string {
 // streaming back), the diff stops being the point of the screen and the chat
 // should read like one - see renderChangeDiscussFull. Composing the first
 // message stays in the split view, where the file list and diff are still
-// useful for picking what to ask about.
+// useful for picking what to ask about. The box focused on screen entry
+// (chatCompact) stays split too, so the diff is what the reviewer sees first.
 func (c *changeState) discussFullScreen() bool {
-	return c.planMode && (len(c.transcript) > 0 || c.discussing)
+	return c.planMode && !c.chatCompact && (len(c.transcript) > 0 || c.discussing)
 }
 
 // changeDiscussBudget is the full-screen chat view's transcript line budget -

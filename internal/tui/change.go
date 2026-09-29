@@ -84,6 +84,7 @@ type changeState struct {
 	discussing        bool     // a --discuss round is currently running (derived: IsActive && proc.Alive)
 	reworkConfirmOpen bool     // Auto mode's explicit "start implementing?" confirm, armed by Enter in the box
 	reworkConfirmSel  int      // 0 Start implementing, 1 Cancel
+	chatCompact       bool     // box focused by entry, not by the reviewer: keep the split view until they send
 
 	draft     *textarea.Model
 	boxOrigin changeBoxOrigin

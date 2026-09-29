@@ -6,28 +6,37 @@
 // they don't navigate the screen; ↑ moves the caret up within wrapped lines
 // unless already on the textarea's first visual row (LineInfo().RowOffset==0,
 // meaningful because Enter never lets a real newline in, so the whole draft
-// stays one wrapping paragraph), in which case it exits to the Approve row
-// instead.
+// stays one wrapping paragraph), in which case it exits to the list's top
+// row, "PR description", instead.
 package tui
 
 import (
 	"os/exec"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 )
 
 // newChangeBox builds the feedback textarea, prefilled with any draft the
-// screen was left with (idle, unfocused - the default mode is the split list).
+// screen was left with. It starts blurred; openChangeView focuses it.
 func newChangeBox(initial string) *textarea.Model {
 	ta := textarea.New()
 	ta.Placeholder = "Comment on a file or a line, or write here. @ mentions any file in the repo."
 	ta.CharLimit = 0
 	ta.MaxHeight = 0
 	ta.ShowLineNumbers = false
+	// The focused view is rendered with its ANSI intact so the caret shows;
+	// every other textarea style is cleared so the caret is the only styling
+	// that gets through, and it stays solid so no blink messages are needed.
+	plain := textarea.Style{Placeholder: stMeta}
+	ta.FocusedStyle, ta.BlurredStyle = plain, plain
+	ta.Cursor.Style = lipgloss.NewStyle().Reverse(true)
+	ta.Cursor.SetMode(cursor.CursorStatic)
 	ta.SetValue(initial)
 	ta.Blur()
 	return &ta
@@ -58,6 +67,7 @@ func (m monitorModel) openChangeBox(mention string, origin changeBoxOrigin) (tea
 	c := &m.change
 	c.boxOrigin = origin
 	c.mode = chBox
+	c.chatCompact = false
 	if mention != "" {
 		insertMention(c.draft, mention)
 	}
@@ -159,7 +169,7 @@ func (m monitorModel) updateChangeBox(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if c.draft.LineInfo().RowOffset == 0 {
 			c.draft.Blur()
 			c.mode = chSplit
-			c.cursor = c.ctaAt()
+			c.cursor = 0 // the list's top row, "PR description"
 			return m, tea.DisableMouse
 		}
 	case tea.KeyPgUp, tea.KeyCtrlB:
@@ -383,7 +393,10 @@ func (m monitorModel) renderChangeBoxInput(cw int) []string {
 			prefix = "❯ "
 		}
 		text := stripAnsiStr(ln)
-		if empty {
+		switch {
+		case focused:
+			text = ln // keeps the caret; see newChangeBox's styles
+		case empty:
 			text = stMeta.Render(text)
 		}
 		content := prefix + text
@@ -424,7 +437,7 @@ func (m monitorModel) renderChangeBoxInput(cw int) []string {
 		if c.discussFullScreen() {
 			out = append(out, stMeta.Render("ctrl+b/ctrl+f scroll the conversation"))
 		}
-		out = append(out, stMeta.Render("esc back, keep draft   ↑ on first line: back to Approve"))
+		out = append(out, stAccent.Render("↑ PR description & changed files")+stMeta.Render("   esc back, keep draft"))
 	}
 	return out
 }
