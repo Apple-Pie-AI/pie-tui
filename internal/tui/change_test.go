@@ -62,7 +62,45 @@ func changeModel(t *testing.T) monitorModel {
 			"b/Two.kt": {"@@ -0,0 +1,9 @@", "+new file line"},
 		},
 	})
-	return got.(monitorModel)
+	// The screen opens in the chat box; most tests drive the file list.
+	return chPress(t, got.(monitorModel), "esc")
+}
+
+func TestChangeOpensWithChatFocused(t *testing.T) {
+	m := changeModel(t)
+	sess, _ := m.store.Get("C-1")
+	mm, _ := m.openChangeView(*sess)
+	m = mm.(monitorModel)
+	if m.change.mode != chBox || !m.change.draft.Focused() {
+		t.Fatalf("entry must focus the chat box: mode=%d focused=%v", m.change.mode, m.change.draft.Focused())
+	}
+	m = chType(t, m, "hi")
+	if got := m.change.draft.Value(); got != "hi" {
+		t.Fatalf("typing on entry must reach the box, got %q", got)
+	}
+	m = chPress(t, m, "esc")
+	if m.change.mode != chSplit || m.change.cursor != 0 {
+		t.Fatalf("esc from the entry box must land on the list's top row: mode=%d cursor=%d", m.change.mode, m.change.cursor)
+	}
+}
+
+func TestChangeBoxShowsCaretOnlyWhenFocused(t *testing.T) {
+	lipgloss.SetColorProfile(termenv.TrueColor)
+	t.Cleanup(func() { lipgloss.SetColorProfile(termenv.Ascii) })
+	const reverse = "\x1b[7m"
+	m := changeModel(t)
+	if strings.Contains(strings.Join(m.renderChangeBoxInput(100), "\n"), reverse) {
+		t.Fatal("an unfocused box must not draw a caret")
+	}
+	m.change.cursor = m.change.ctaAt()
+	m = chPress(t, m, "down")
+	if !strings.Contains(strings.Join(m.renderChangeBoxInput(100), "\n"), reverse) {
+		t.Fatal("the focused, empty box must draw a caret")
+	}
+	m = chType(t, m, "fix it")
+	if !strings.Contains(strings.Join(m.renderChangeBoxInput(100), "\n"), reverse) {
+		t.Fatal("the focused box with text must draw a caret")
+	}
 }
 
 func chPress(t *testing.T, m monitorModel, keys ...string) monitorModel {

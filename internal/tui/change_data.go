@@ -57,7 +57,11 @@ func (m *monitorModel) openChangeView(s store.Session) (tea.Model, tea.Cmd) {
 	} else {
 		cmds = append(cmds, loadRepoFilesCmd(c.worktree, c.ticket))
 	}
-	return *m, tea.Batch(cmds...)
+	// The chat box is where the reviewer acts first, so it owns the keyboard
+	// on entry; Esc steps back to the file list's top row.
+	boxed, focus := m.openChangeBox("", changeBoxOrigin{mode: chSplit})
+	*m = boxed.(monitorModel)
+	return *m, tea.Batch(append(cmds, focus)...)
 }
 
 // changeDiffMsg carries the change's files and hunks.
