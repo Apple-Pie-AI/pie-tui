@@ -6,8 +6,8 @@
 // they don't navigate the screen; ↑ moves the caret up within wrapped lines
 // unless already on the textarea's first visual row (LineInfo().RowOffset==0,
 // meaningful because Enter never lets a real newline in, so the whole draft
-// stays one wrapping paragraph), in which case it exits to the Approve row
-// instead.
+// stays one wrapping paragraph), in which case it exits to the list's top
+// row, "PR description", instead.
 package tui
 
 import (
@@ -169,7 +169,7 @@ func (m monitorModel) updateChangeBox(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if c.draft.LineInfo().RowOffset == 0 {
 			c.draft.Blur()
 			c.mode = chSplit
-			c.cursor = c.ctaAt()
+			c.cursor = 0 // the list's top row, "PR description"
 			return m, tea.DisableMouse
 		}
 	case tea.KeyPgUp, tea.KeyCtrlB:
@@ -437,7 +437,7 @@ func (m monitorModel) renderChangeBoxInput(cw int) []string {
 		if c.discussFullScreen() {
 			out = append(out, stMeta.Render("ctrl+b/ctrl+f scroll the conversation"))
 		}
-		out = append(out, stMeta.Render("esc back, keep draft   ↑ on first line: back to Approve"))
+		out = append(out, stAccent.Render("↑ PR description & changed files")+stMeta.Render("   esc back, keep draft"))
 	}
 	return out
 }
