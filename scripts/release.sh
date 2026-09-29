@@ -50,8 +50,9 @@ if [ "$obfuscate" = "1" ]; then
 		*pkg/mod/golang.org/toolchain*)
 			die "go's GOROOT is a downloaded toolchain ($(go env GOROOT)).
     garble needs a real SDK. Install one and put it first on PATH:
-        go install golang.org/dl/go1.26.2@latest && go1.26.2 download
-        export PATH=\"\$HOME/sdk/go1.26.2/bin:\$PATH\"" ;;
+        go install golang.org/dl/go1.27.1@latest && go1.27.1 download
+        export PATH=\"\$HOME/sdk/go1.27.1/bin:\$PATH\"
+    (garble's minimum Go can be newer than go.mod's - see RELEASE.md.)" ;;
 	esac
 	export PIE_NO_OBFUSCATE=0
 	info "obfuscation: ON (garble -literals -tiny -seed=random)"

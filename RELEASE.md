@@ -13,18 +13,31 @@ brew install goreleaser gh          # or see https://goreleaser.com/install/
 gh auth login                       # the release script reuses this token
 ```
 
-garble needs a **real Go SDK** whose `GOROOT` is a normal directory (matching
-`go.mod`, currently 1.26.2). Do **not** rely on `GOTOOLCHAIN` to fetch the
-toolchain on demand — garble patches the linker source, and Go forbids that on
-the toolchain it downloads into `GOMODCACHE` (you'll get
-`overlay ... must not be replaced`). If your default `go` is older:
+garble needs a **real Go SDK** whose `GOROOT` is a normal directory. Do **not**
+rely on `GOTOOLCHAIN` to fetch the toolchain on demand — garble patches the
+linker source, and Go forbids that on the toolchain it downloads into
+`GOMODCACHE` (you'll get `overlay ... must not be replaced`).
+
+The SDK has to satisfy two minimums: `go.mod`'s (currently 1.26.2) and
+garble's own. garble only supports recent Go releases, and its minimum is
+usually the higher of the two — **garble v0.18.0 requires Go 1.27 or newer**,
+and fails the build within a second otherwise:
+
+```
+Go version "go1.26.4" is too old; please upgrade to go1.27.0 or newer
+```
+
+So the release SDK is currently Go 1.27.1, not the `go.mod` version:
 
 ```bash
-go install golang.org/dl/go1.26.2@latest
-go1.26.2 download                          # installs a real SDK under ~/sdk/go1.26.2
-export PATH="$HOME/sdk/go1.26.2/bin:$PATH" # make it the `go` on PATH (no GOTOOLCHAIN)
+go install golang.org/dl/go1.27.1@latest
+go1.27.1 download                          # installs a real SDK under ~/sdk/go1.27.1
+export PATH="$HOME/sdk/go1.27.1/bin:$PATH" # make it the `go` on PATH (no GOTOOLCHAIN)
 go install mvdan.cc/garble@latest          # build garble against that same SDK
 ```
+
+When a newer garble raises its minimum again, install the SDK version the
+error names and update this section.
 
 ## Cutting a release
 
@@ -42,9 +55,17 @@ moment this step finishes; there is no second repo to mirror to.
 Pick versions with [semver](https://semver.org): `v0.1.0`, `v1.0.0`, etc.
 
 Before running the script: merge the PR into `main` and release from a clean
-`main` checkout (the script refuses a dirty tree). `garble` installs to
-`~/go/bin`, which is not on PATH by default - `export PATH="$HOME/go/bin:$PATH"`
-or the script dies with `garble not found`.
+`main` checkout (the script refuses a dirty tree). Put both the release SDK and
+`~/go/bin` (where `garble` installs) first on PATH, or the script dies with
+`garble not found` or garble's "Go version ... is too old":
+
+```bash
+export PATH="$HOME/sdk/go1.27.1/bin:$HOME/go/bin:$PATH"
+go version                                 # must print go1.27.1, not your default go
+scripts/release.sh v0.2.0
+```
+
+The obfuscated build of all four targets can take over 10 minutes.
 
 If goreleaser's upload step fails (GitHub's upload endpoint has done this -
 `upload failed ... POST https://uploads.github.com/...`, then a draft release

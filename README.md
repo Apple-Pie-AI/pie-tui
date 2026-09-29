@@ -464,7 +464,7 @@ make build-prod ARGS='--linux --clean'     # same, via the Makefile
 make build-test ARGS='--all'               # non-obfuscated, every target
 ```
 
-macOS binaries are ad-hoc codesigned so Gatekeeper doesn't kill them. A `prod` build needs a real Go SDK matching `go.mod` on `PATH` (garble can't use the `GOTOOLCHAIN` auto-download path); the script finds a `golang.org/dl` SDK for you, or install one with `go install golang.org/dl/go1.26.2@latest && go1.26.2 download`.
+macOS binaries are ad-hoc codesigned so Gatekeeper doesn't kill them. A `prod` build needs a real Go SDK on `PATH` (garble can't use the `GOTOOLCHAIN` auto-download path), new enough for both `go.mod` and garble. garble v0.18.0 needs Go 1.27+, so install one with `go install golang.org/dl/go1.27.1@latest && go1.27.1 download`; see [RELEASE.md](RELEASE.md).
 
 For a **published, tagged release** — cross-platform archives (`.tar.gz` for Linux, `.zip` for macOS), checksums, and the GitHub release — GoReleaser remains the tool (`make snapshot-obf` to dry-run it locally). See [RELEASE.md](RELEASE.md). `scripts/build.sh` is for producing binaries; GoReleaser is for packaging and publishing them.
 
