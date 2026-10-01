@@ -2,51 +2,95 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><em>A native mobile app harness that drives agentic CLIs to run enterprise mobile development cycles.</em></p>
+<p align="center"><strong>A harness for Android development.</strong><br><em>Run your everyday Android workflows with coding agents, each in its own git worktree, and steer them all from one control pane.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-You already use an agentic CLI to work tickets by hand: plan the change, make it, run the build and tests, open the PR, repeat. Apple Pie runs that loop for you. Each ticket goes through plan → implement → verify in its own git worktree and comes out the other side as a Pull Request. Run many in parallel, watch them all from one control pane, and get pulled in only when an agent is genuinely stuck. My own PR count roughly doubled; now I mostly just review.
+Apple Pie runs the workflows Android developers repeat every day — turning a ticket into a pull request, answering review comments, reworking a change — with a coding agent doing the work and you making the calls. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer: approving a plan, choosing which review comments to fix, reviewing a change before it leaves your machine.
+
+Every stage is built around Android: the agent builds and tests with your project's own Gradle setup, Apple Pie coordinates the emulators that instrumented tests need, and any worktree opens in Android Studio with one key.
 
 https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
+
+## The control pane
+
+Run `pie` and you get the dashboard: one row per worktree, grouped by what it needs from you.
+
+- **NEEDS YOU** — a plan to approve, questions to answer, a change to review, comment fixes to preview, a run that got stuck.
+- **RUNNING** — agents planning, implementing, or verifying, with the stage they're in.
+- **READY FOR REVIEW** — open pull requests, with a badge when reviewers have left comments.
+
+From any row you can open its worktree in Android Studio (<kbd>o</kbd>), jump into the agent's Claude Code session (<kbd>c</kbd>), or stop it; `pie logs <ticket>` prints its full session. When an agent wants to run a command your allowlist doesn't cover, it pauses and a banner asks you on the dashboard — allow it once, allow and remember, or deny — and the agent carries on in the same session. **Edit models** picks the model for each stage, including the `/model` list your company curates in Claude Code.
+
+## Workflows
+
+### 1. Ticket to pull request
+
+Start from a Jira key or a markdown file you write or paste.
+
+```mermaid
+flowchart LR
+  T["Ticket"] --> P["Plan"]
+  P --> G{"You review the plan"}
+  G -->|feedback| P
+  G -->|approve| I["Implement"]
+  I --> V["Verify: build and tests"]
+  V -->|green| C{"You review the change"}
+  C -->|feedback| I
+  C -->|approve| R["Pull request"]
+  V -->|"not green"| N["NEEDS YOU"]
+```
+
+1. **Plan.** The agent explores the codebase read-only and writes a plan. You read it, send feedback for a re-plan, or approve it. Blocking questions come to you before any code is written.
+2. **Implement.** The agent makes the change in the ticket's worktree, then adversarially reviews its own diff and fixes what that turns up.
+3. **Verify.** The agent runs your project's real build and tests — booting an emulator when the plan calls for instrumented tests — and certifies green only after seeing them pass. No certification, no PR: the ticket goes to NEEDS YOU instead.
+4. **Review the change.** Before anything is committed or pushed, you see every changed file and its diff (workflow 3). Send feedback for another round, or approve and Apple Pie commits, pushes, and opens the pull request.
+
+The plan review is opt-in per ticket (`--review-plan`, or `review_plans` in config); the change review is on by default. More in [Staying in control](#staying-in-control).
+
+### 2. Review comments
+
+When reviewers comment on a PR, the dashboard shows a badge and Apple Pie fetches the threads from GitHub — bots included.
+
+1. **Triage.** Each comment opens next to the diff hunk it's anchored to. Decide which ones the agent handles and which it skips, and add your own context to any of them ("use the existing retry helper", "no change needed, just explain why"). A comment that's a question, or needs no change, gets an answer drafted for the reviewer instead of a code change.
+2. **Fix.** The agent fixes the comments you selected, locally only. Nothing is pushed or posted yet.
+3. **Preview.** For every comment you see the diff of its fix and the reply that will be posted to the thread. Edit a reply, ask the agent to change a fix, or leave a thread out of this batch.
+4. **Approve.** Apple Pie verifies the build, pushes to the same PR, posts the replies, and resolves the threads.
+
+More in [When the reviewers come back](#when-the-reviewers-come-back).
+
+### 3. Request changes
+
+**Review and make changes** opens a view of every change on the branch: the PR description, the changed files, and each file's diff. Talk it through with the agent in plan mode (it answers without touching code), or switch to auto mode and tell it what to change — mention files with `@`, or pick a line in the diff to point at it. The agent reworks the change and re-verifies, and the view comes back showing what moved since your feedback. When it looks right, create the pull request, or push to it if one is already open.
+
+It works on any ticket — waiting for review, stuck, or with an open PR — and on any existing branch: **Checkout a branch** brings a branch into its own worktree, so you can review and rework code an agent didn't write.
+
+### Nothing merges itself
+
+Every workflow stops at `review`. There is no auto-merge, no merge flag, and no code path that merges a pull request. Apple Pie's own files never reach your PRs either: plans, reports, and logs live under `~/.pie`, and the agent's scratch directory in the worktree is git-excluded and scrubbed before every commit.
+
+## Built for Android
+
+General coding agents don't know what verifying an Android change means. Each of Apple Pie's stages does:
+
+- **Your build, not a guess.** The agent discovers how *your* project builds and tests — Gradle tasks, multi-module and KMP projects, company build scripts — runs them for real, and self-certifies the result in a report Apple Pie checks for freshness, so a crashed run can't leave a stale "it passed" behind.
+- **Unit vs. instrumented tests.** Decided at plan time, enforced at verify time.
+- **Emulator coordination.** The SDK and AVD are auto-detected, and parallel agents take turns on the emulator through a shared lock, so no two agents fight over a device. The background daemon shuts it down when it's been idle.
+- **Android Studio handoff.** One key opens any agent's worktree in the IDE, and your hand-edits there count: the change is re-verified before it ships.
+- **Screenshot tickets.** Drag images into the terminal; the agent sees them while planning.
 
 ## What ships today
 
 | Area | Shipped today | Where it's headed |
 |------|---------------|-------------------|
 | **Agent CLI** | Claude Code, driven through `claude -p` | Codex and other agentic CLIs behind the same harness |
-| **Platform** | Android: Gradle builds, AVD/emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
+| **Platform** | Android and KMP on Gradle: emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
 | **Tickets** | Jira keys and local markdown files | — |
-| **Review** | GitHub Pull Requests via `gh` | — |
+| **Review** | GitHub pull requests and review comments via `gh` | — |
 
-The left column is real and exercised end to end. The right column is not built yet — there is no Codex adapter, and the Xcode/simulator path for the iOS preview is under active development.
-
-## How it works
-
-```mermaid
-flowchart LR
-  T["Ticket"] --> P["Plan"]
-  P --> G{"Review the plan?"}
-  G -->|approved| I["Implement"]
-  G -->|feedback| P
-  I --> V["Verify"]
-  V -->|green| R["Pull Request"]
-  V -->|"not green"| N["NEEDS YOU"]
-  P -->|questions| N
-  N -->|"you unblock it"| I
-```
-
-| Stage | What it does |
-|-------|--------------|
-| **Plan** | Explores the codebase read-only and writes a free-form markdown plan. Apple Pie doesn't constrain how it plans — it only extracts what the orchestrator needs: blocking questions, and whether the ticket needs an emulator or unit tests only |
-| **Implement** | Makes the change the plan describes, then adversarially reviews its own diff and fixes what that review turns up |
-| **Verify** | Discovers how *your* project builds, runs the real build and tests (booting the emulator if needed), and certifies green only after seeing them pass |
-
-The interesting part is verification. Apple Pie does not run Gradle itself. The agent discovers and runs your project's own build and test commands — whatever they are, including company build scripts — and self-certifies the result in a report the orchestrator reads. That report is freshness-checked, so a crashed run can't leave a stale "it passed" behind. No certification, no PR: the ticket goes to **NEEDS YOU** instead.
-
-Apple Pie's own artifacts never reach your PRs. Plans, reports, and review verdicts are archived under `~/.pie`, and the `.agent/` scratch directory agents use inside the worktree is git-excluded and scrubbed before every commit.
+The left column is real and exercised end to end. The right column is not built yet — there is no Codex adapter, and no iOS or simulator support.
 
 ## Install
 
@@ -251,7 +295,7 @@ Apple Pie is built to hand tickets back rather than plough through them. Three m
 
 **The plan review gate.** Turn it on per ticket when queueing, with `--review-plan`, or as your default with `review_plans` in the config. The run pauses after planning; you read the plan in the TUI's full-screen viewer and either approve it or send feedback for a re-plan. Every plan is archived to `~/.pie/plans/<ticket>.md` regardless, so you can read it after the fact with **View Plan**.
 
-**The review-before-PR gate (on by default).** After the agent's change builds and verifies, the ticket parks under NEEDS YOU as "review before PR" — nothing is committed, pushed, or opened as a PR yet. Enter opens the change screen: the file list with the verify summary on the left, each file's diff on the right; → reads a file full screen, enter inside it scrolls, and enter while scrolling anchors a note to the visible lines. Mark files with notes or revert them to base (both pending and undoable until an action runs), then **Send feedback** — the agent reworks and the screen returns as round 2, showing what changed since your feedback — or **Create pull request**, which re-verifies only if the change moved (your hand-edits in Android Studio count) and then ships. Turn the gate off with `review_before_pr = false`.
+**The review-before-PR gate (on by default).** After the agent's change builds and verifies, the ticket parks under NEEDS YOU as "review before PR" — nothing is committed, pushed, or opened as a PR yet. Enter opens the change screen with the chat box focused: the PR description and the changed files on the left, the focused file's diff on the right (↑ from the chat box moves into the list). → reads a file full screen, enter scrolls it, and enter on a line adds that `@file:line` to your message. Shift+tab switches the chat between **plan mode** — the agent answers your questions without changing code — and **auto mode**, where sending starts a rework: the agent changes the code, re-verifies, and the screen returns as the next round, showing what changed since your feedback. **Create pull request** re-verifies only if the change moved (your hand-edits in Android Studio count) and then ships. Turn the gate off with `review_before_pr = false`.
 
 **NEEDS YOU.** An ambiguous ticket, a compile error the agent can't fix, or a verification that never went green all land here rather than being forced through. Answer in the TUI, resume the Claude session, or open the worktree in Android Studio and fix it by hand — then `--resume` to re-verify, or `--ship` to trust your fix and PR straight away.
 
@@ -315,15 +359,6 @@ Run the batch and Apple Pie re-enters the ticket's existing worktree and applies
 - **Approve** — the run bar says what it's about to do: verify the build, commit, push to the same branch (the open PR updates in place), post each reply, and mark the threads resolved. Only then does anything leave your machine. The reply and resolve write-backs stay switchable (`review_reply`, `review_resolve`) — on some teams, resolving a thread is the reviewer's call.
 
 The preview is durable — it lives in the worktree and the state database, so you can close the TUI, sleep on it, and approve tomorrow. And a skipped or half-fixed batch isn't a dead end: threads you didn't include keep their badge, and a reviewer replying to any thread reopens it on the next poll.
-
-## Why Android-native matters
-
-General ticket→PR agents don't know what verifying an Android change means. Apple Pie does:
-
-- **Emulator as a shared resource.** The SDK and AVD are auto-detected, and a SQLite-backed semaphore lets parallel agents take turns on one AVD — no two agents fight over a device.
-- **Instrumented vs. unit test routing.** Decided at plan time, enforced at verify time.
-- **Worktree → Android Studio handoff.** One keystroke opens any agent's worktree in the IDE.
-- **Screenshot tickets.** Drag images into the terminal; the agent sees them while planning.
 
 ## Configuration
 
