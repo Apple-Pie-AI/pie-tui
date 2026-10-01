@@ -359,9 +359,9 @@ const (
 	viewPlan        // full-screen markdown plan viewer (plan-review gate)
 	viewRepoFix     // fix-a-broken-repo-path screen (suggest local repos / clone)
 	viewComments    // PR review comments: read, select, hand to the agent
-	viewEditConfig  // "Edit config": allowlist + models links, repo/branch fields
+	viewEditConfig  // "Edit config": allowlist link, repo/branch fields
 	viewPermissions // command allowlist review: baseline + extra rules, add/remove
-	viewEditModels  // per-stage model fields, linked from "Edit config"
+	viewEditModels  // per-stage model pickers, the dashboard's "Edit models" row
 	viewChange      // review the local change before its PR exists (change-review gate)
 )
 

@@ -418,6 +418,9 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.cursor == 2 {
 			return m.doAction(actConfig)
 		}
+		if m.cursor == 3 {
+			return m.doAction(actModels)
+		}
 		// A collapsible section header folds/unfolds on Enter. The cursor stays
 		// put: the header's own index never moves, since toggling only inserts
 		// or removes rows after it.

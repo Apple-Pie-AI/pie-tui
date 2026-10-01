@@ -4,7 +4,8 @@
 
         Start new ticket(s)             from Jira, or a description you type                                                                      
       ▸ Checkout a branch               check out an existing branch into a pie worktree                                                          
-        Edit config                     allowlist, repo, branch, model fields                                                                     
+        Edit config                     allowlist, repo, branch                                                                                   
+        Edit models                     which Claude model runs each stage                                                                        
 
       N E E D S   Y O U · 1
         PIE-14                     Review pull request                                                                                          4h
@@ -20,7 +21,6 @@
       ▸ S T O P P E D · 1                                                                                                                         
 
       enter opens this command
-
 
 
 

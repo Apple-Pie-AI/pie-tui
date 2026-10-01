@@ -335,7 +335,7 @@ func TestApprovalReachableViaMenuNotHijack(t *testing.T) {
 	}
 	m.reload()
 	m.flat = []store.Session{{Ticket: "PLEX-1", State: "building"}}
-	m.cursor = 3 // first agent row
+	m.cursor = len(dashCommands) // first agent row
 
 	// The menu leads with the approve item...
 	items := m.paletteItems()

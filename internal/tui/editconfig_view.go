@@ -19,7 +19,6 @@ func (m monitorModel) renderEditConfig(w int) string {
 	b.WriteString("\n")
 
 	links := []struct{ label, desc string }{
-		{"Edit models per stage", "which Claude model runs plan, implement, verify, self-review, and comment fixes"},
 		{"Edit command allowlist", "review, add, or remove the commands agents can run without asking"},
 	}
 	for i, l := range links {

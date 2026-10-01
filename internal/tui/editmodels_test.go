@@ -9,12 +9,17 @@ import (
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 )
 
-// The models link leads the edit-config screen (row 0, the default cursor):
-// one Enter opens the models screen with exactly the five per-stage fields,
-// values loaded from the config.
-func TestEditConfigModelsLinkOpensModelsScreen(t *testing.T) {
+// "Edit models" is a dashboard command row, right after "Edit config": Enter
+// on it opens the models screen with exactly the five per-stage fields,
+// values loaded from the config. The command palette offers it too.
+func TestDashboardEditModelsRowOpensModelsScreen(t *testing.T) {
 	m := editConfigModel(t, &config.Config{ModelImpl: "haiku", ModelCommentFix: "opus"})
-	mm, _ := m.updateEditConfig(ecEnter())
+	m.view = viewDashboard
+	m.cursor = 3
+	if dashCommands[2].label != "Edit config" || dashCommands[3].label != "Edit models" {
+		t.Fatalf("command rows = %+v, want Edit models right after Edit config", dashCommands)
+	}
+	mm, _ := m.Update(ecEnter())
 	hub := mm.(monitorModel)
 	if hub.view != viewEditModels {
 		t.Fatalf("view = %v, want viewEditModels", hub.view)
@@ -30,6 +35,24 @@ func TestEditConfigModelsLinkOpensModelsScreen(t *testing.T) {
 		if !strings.Contains(rendered, want) {
 			t.Errorf("render missing %q:\n%s", want, rendered)
 		}
+	}
+	var inPalette bool
+	for _, it := range m.paletteItems() {
+		inPalette = inPalette || it.key == actModels
+	}
+	if !inPalette {
+		t.Error("the command palette must offer Edit models")
+	}
+}
+
+// The picker's selected option carries the ▸ marker, so it reads as selected
+// even with no color at all.
+func TestEditModelsPickerMarksSelection(t *testing.T) {
+	m := editConfigModel(t, &config.Config{})
+	m.openEditModels()
+	m = emPress(t, m, ecEnter(), ecDown())
+	if out := stripAnsiStr(m.renderEditModels(120)); !strings.Contains(out, "▸ fable") {
+		t.Fatalf("the selected option must carry the ▸ marker:\n%s", out)
 	}
 }
 

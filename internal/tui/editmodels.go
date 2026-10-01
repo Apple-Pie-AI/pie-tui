@@ -1,8 +1,6 @@
-// The "Edit models per stage" screen: the five per-stage model fields, linked
-// from "Edit config" (editconfig.go). Split out of that screen's inline list
-// because five model rows buried the repo fields most visits are for - the
-// same reason the allowlist got its own screen. Same nesting contract as the
-// allowlist: its own Save/Esc, returning to the dashboard directly.
+// The "Edit models per stage" screen: the five per-stage model fields, opened
+// from the dashboard's "Edit models" row (and the command palette). Its own
+// Save/Esc, returning to the dashboard directly.
 package tui
 
 import (
@@ -270,11 +268,12 @@ func renderModelPicker(fld formField, sel int) string {
 		case i == current:
 			label += "  (current)"
 		}
-		// Indented to the value column renderModelRow draws (2 + 22 + 1).
+		// Labels sit in the value column renderModelRow draws (2 + 22 + 1), with
+		// the selected one marked the way the command palette marks its own.
 		if i == sel {
-			b.WriteString(strings.Repeat(" ", 24) + selStyle.Render(" "+label+" ") + "\n")
+			b.WriteString(strings.Repeat(" ", 23) + stAccent.Render("▸") + " " + stFocus.Render(label) + "\n")
 		} else {
-			b.WriteString(strings.Repeat(" ", 25) + label + "\n")
+			b.WriteString(strings.Repeat(" ", 25) + stTitle.Render(label) + "\n")
 		}
 	}
 	return b.String()

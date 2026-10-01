@@ -40,6 +40,7 @@ const (
 	actDetectPR      actionID = "detect-pr"
 	actDoctor        actionID = "doctor"
 	actConfig        actionID = "config"
+	actModels        actionID = "models"
 	actSetup         actionID = "setup"
 	actDaemonStart   actionID = "daemon-start"
 	actDaemonStop    actionID = "daemon-stop"
@@ -60,6 +61,6 @@ var allActions = []actionID{
 	actAnswer, actApprove, actViewPlan, actPlanMD, actApprovePlan, actPlanFeedback,
 	actStudio, actClaude, actResume, actAllowRerun, actShip, actRerun, actPause, actStop,
 	actOpenPR, actViewComments, actFetchComments, actViewChange,
-	actRun, actRunFromBranch, actDetectPR, actDoctor, actConfig, actSetup, actDaemonStart, actDaemonStop,
+	actRun, actRunFromBranch, actDetectPR, actDoctor, actConfig, actModels, actSetup, actDaemonStart, actDaemonStop,
 	actMenu, actAgentMenu, actRefresh, actQuit,
 }

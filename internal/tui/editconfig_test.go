@@ -34,11 +34,11 @@ func TestActConfigOpensEditConfigScreen(t *testing.T) {
 		t.Fatalf("view = %v, want viewEditConfig", hub.view)
 	}
 	if hub.editConfig.cursor != 0 {
-		t.Errorf("cursor = %d, want 0 (the models link leads)", hub.editConfig.cursor)
+		t.Errorf("cursor = %d, want 0 (the allowlist link leads)", hub.editConfig.cursor)
 	}
 	// 5 inline fields: repo path, branch, base, the plan-review toggle, and
-	// the review-before-PR toggle (no Jira). The five per-stage models live
-	// behind their own link.
+	// the review-before-PR toggle (no Jira). The five per-stage models have
+	// their own dashboard row.
 	if len(hub.editConfig.cfgFields) != 5 {
 		t.Errorf("cfgFields = %v, want 5", hub.editConfig.cfgFields)
 	}
@@ -51,19 +51,18 @@ func TestActConfigOpensEditConfigScreen(t *testing.T) {
 		}
 	}
 	rendered := hub.renderEditConfig(80)
-	for _, want := range []string{"Edit command allowlist", "Edit models per stage"} {
-		if !strings.Contains(rendered, want) {
-			t.Errorf("render missing the %q link:\n%s", want, rendered)
-		}
+	if !strings.Contains(rendered, "Edit command allowlist") {
+		t.Errorf("render missing the allowlist link:\n%s", rendered)
+	}
+	if strings.Contains(rendered, "Edit models") {
+		t.Errorf("models moved to the dashboard; Edit config must not link them:\n%s", rendered)
 	}
 }
 
-// The allowlist link sits on row 1, one down from the leading models link.
+// The allowlist link is row 0, the default cursor.
 func TestEditConfigLinkRowOpensAllowlist(t *testing.T) {
 	m := editConfigModel(t, &config.Config{})
-	mm, _ := m.updateEditConfig(ecDown()) // past the models link
-	m = mm.(monitorModel)
-	mm, _ = m.updateEditConfig(ecEnter())
+	mm, _ := m.updateEditConfig(ecEnter())
 	hub := mm.(monitorModel)
 	if hub.view != viewPermissions {
 		t.Fatalf("view = %v, want viewPermissions", hub.view)
@@ -75,9 +74,7 @@ func TestEditConfigLinkRowOpensAllowlist(t *testing.T) {
 // screen's job, applied independently.
 func TestEditConfigFieldEditsAndSaves(t *testing.T) {
 	m := editConfigModel(t, &config.Config{ExtraAllowedTools: "Bash(python3:*)"})
-	mm, _ := m.updateEditConfig(ecDown()) // past the allowlist link
-	m = mm.(monitorModel)
-	mm, _ = m.updateEditConfig(ecDown()) // past the models link, onto field 0
+	mm, _ := m.updateEditConfig(ecDown()) // past the allowlist link, onto field 0
 	m = mm.(monitorModel)
 	for _, r := range "/tmp/newrepo" {
 		mm, _ = m.updateEditConfig(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
@@ -110,9 +107,7 @@ func TestEditConfigFieldEditsAndSaves(t *testing.T) {
 // Esc discards field edits: nothing is written to disk.
 func TestEditConfigEscDiscards(t *testing.T) {
 	m := editConfigModel(t, &config.Config{ModelPlan: "haiku"})
-	mm, _ := m.updateEditConfig(ecDown()) // past the models link
-	m = mm.(monitorModel)
-	mm, _ = m.updateEditConfig(ecDown()) // field 0 (repo path)
+	mm, _ := m.updateEditConfig(ecDown()) // past the allowlist link, onto field 0 (repo path)
 	m = mm.(monitorModel)
 	mm, _ = m.updateEditConfig(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("Z")})
 	m = mm.(monitorModel)
