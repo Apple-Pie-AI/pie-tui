@@ -355,6 +355,7 @@ The keys you'll actually touch in `config.toml`:
 | `review_resolve` | `true` | Also mark those threads resolved. Turn off where that's the reviewer's call |
 | `model_plan` / `model_impl` / `model_review` | blank | Per-stage models. Blank uses Claude Code's default |
 | `model_verify` / `model_comment_fix` | blank | Models for the verify stage and PR review-comment fixes. Blank falls back to `model_impl` |
+| `saved_models` | `[]` | Models you added on the **Edit models** screen, offered for every stage alongside your company's Claude Code `/model` list and the `opus`/`sonnet`/`haiku` aliases |
 | `max_budget_usd` | `5` | Per-ticket ceiling passed to `claude` |
 
 Secrets never go in the config file — they live in your OS keychain, or in `PIE_JIRA_TOKEN` / `PIE_ANTHROPIC_TOKEN` / `PIE_GIT_TOKEN` for headless use. `PIE_HOME` relocates the whole directory; `PIE_NO_SPLASH=1` and `PIE_NO_SOUND=1` quiet the title screen.

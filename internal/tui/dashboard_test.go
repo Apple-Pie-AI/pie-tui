@@ -283,9 +283,9 @@ func TestReloadGrouping(t *testing.T) {
 		t.Error("cursor 2 (Edit-config row) should select no agent")
 	}
 	// Cursor 3 selects the first agent.
-	m.cursor = 3
+	m.cursor = len(dashCommands)
 	if m.selected() == nil || m.selected().Ticket != m.flat[0].Ticket {
-		t.Error("cursor 3 should select the first agent")
+		t.Error("the first row after the commands should select the first agent")
 	}
 	// Clamp: max cursor is len(flat)+2 (three pinned rows + N agents).
 	m.cursor = 99

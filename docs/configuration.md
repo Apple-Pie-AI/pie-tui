@@ -72,6 +72,7 @@ allowed_tools     = "…"
 | `model_review` | blank | Model for the adversarial self-review |
 | `model_verify` | blank | Model for the verify stage. Blank falls back to `model_impl` |
 | `model_comment_fix` | blank | Model that fixes PR review comments (and their revise rounds). Blank falls back to `model_impl` |
+| `saved_models` | `[]` | Models added with **Add a model…** on the hub's **Edit models** screen, offered in every stage's picker. Any name `--model` accepts |
 | `max_budget_usd` | `5` | Per-ticket ceiling passed to `claude --max-budget-usd`. The self-review stage gets 30% of it |
 | `review_plans` | `false` | Default answer for the plan review gate. `pie run --review-plan` turns it on per ticket |
 | `review_before_pr` | `true` | Pause after a green verify so you review the change in the hub before any PR is created. From the change screen you can annotate files, revert them to base, send feedback for a rework round, or approve — approving re-verifies only if the change moved since the park, then commits, pushes, and opens the PR. `--review-change=false` (or the config set to `false`) restores the old auto-PR flow; the explicit ship verbs `--ship` and `--resume` bypass the gate deliberately |
@@ -79,6 +80,8 @@ allowed_tools     = "…"
 | `approval_policy` | `"auto"` | The permission callback's auto-answer: `auto` approves commands already on the allowlist without prompting; `always-ask` routes every callback to the dashboard. See [permissions.md](permissions.md) |
 
 **Models are deliberately blank by default.** A blank value makes Apple Pie omit `--model` entirely, so Claude Code uses whatever default you or your organization configured — including enterprise policy, and including non-Claude models on Bedrock or Vertex. Set any identifier your account allows (`haiku`, `sonnet`, `opus`, or a full model name). Nothing is hardcoded.
+
+**The hub's Edit models screen picks from a list.** Each stage offers, in order: its default; the `/model` list your company curates in Claude Code's own settings (`modelPicker`, read from the managed settings file and `~/.claude/settings.json`, never from a project checkout); the `opus`/`sonnet`/`haiku` aliases, unless that list replaces Claude Code's built-in lineup; your `saved_models`; and **Add a model…** for any other name. A picked model is checked once in the background with a one-turn `claude` run: a name Claude Code refuses fails in seconds at no cost, one it accepts costs a fraction of a cent to a few cents, and the stage shows the model that actually ran. A list Claude Code fetches from a server isn't on disk, so it can't be shown; the aliases, saved models, and the check still apply.
 
 **A stage's model also selects its permission gate** when `permissions` is unset: models that support permission auto-mode run with the classifier (no allowlist), everything else runs under the `allowed_tools` allowlist. Changing a per-stage model — including `model_comment_fix` — therefore changes how that stage is gated; set `permissions = "allowlist"` (or `"auto"`) explicitly to pin the gate regardless of model. See [permissions.md](permissions.md).
 

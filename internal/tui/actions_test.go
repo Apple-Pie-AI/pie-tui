@@ -82,7 +82,7 @@ func TestNeedsYouActionOrder(t *testing.T) {
 	}
 
 	// Scoped agent menu shows only those actions - no globals.
-	m := monitorModel{flat: []store.Session{{Ticket: "NY1", State: "needs-you"}}, rows: flatRows(1), cursor: 3, paletteAgentOnly: true}
+	m := monitorModel{flat: []store.Session{{Ticket: "NY1", State: "needs-you"}}, rows: flatRows(1), cursor: len(dashCommands), paletteAgentOnly: true}
 	ids := itemIDs(m.paletteItems())
 	for _, no := range []actionID{actRun, actDoctor, actConfig, actSetup, actQuit, actDaemonStart} {
 		if ids[no] {
@@ -143,7 +143,7 @@ func TestAgentActionsStoppedNoWorktree(t *testing.T) {
 
 func TestPaletteItemsIncludeGlobals(t *testing.T) {
 	t.Setenv("PIE_HOME", t.TempDir()) // no pidfile → daemon stopped
-	m := monitorModel{flat: []store.Session{{Ticket: "K1", State: "awaiting-answer"}}, rows: flatRows(1), cursor: 3}
+	m := monitorModel{flat: []store.Session{{Ticket: "K1", State: "awaiting-answer"}}, rows: flatRows(1), cursor: len(dashCommands)}
 	ids := itemIDs(m.paletteItems())
 	for _, want := range []actionID{actAnswer, actRun, actDoctor, actConfig, actSetup, actDaemonStart, actQuit} {
 		if !ids[want] {
@@ -169,7 +169,7 @@ func TestDoActionTransitions(t *testing.T) {
 	if hub := branchM.(monitorModel); hub.view != viewRunInput || !hub.run.branchFirstPick {
 		t.Errorf("run-from-branch → initial branch picker; got view=%d mode=%q branchFirstPick=%v", hub.view, hub.run.mode, hub.run.branchFirstPick)
 	}
-	m := monitorModel{flat: []store.Session{{Ticket: "K1", State: "failed"}}, rows: flatRows(1), cursor: 3}
+	m := monitorModel{flat: []store.Session{{Ticket: "K1", State: "failed"}}, rows: flatRows(1), cursor: len(dashCommands)}
 	mm, _ := m.doAction(actStop)
 	got := mm.(monitorModel)
 	if got.confirm.ticket != "K1" {

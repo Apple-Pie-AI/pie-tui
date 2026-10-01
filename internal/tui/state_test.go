@@ -46,7 +46,7 @@ func TestAllActionsIsComplete(t *testing.T) {
 	// The total number of actionID constants, not a running tally of additions -
 	// two branches each appending their own "+actFoo" to this line is a conflict
 	// that has to be counted out by hand to resolve.
-	const declared = 30
+	const declared = 31
 	if len(allActions) != declared {
 		t.Fatalf("allActions has %d entries but %d actionID constants are declared - "+
 			"register the new one (and update this count)", len(allActions), declared)
@@ -86,7 +86,7 @@ func TestMenusOnlyProduceRegisteredActions(t *testing.T) {
 		check(agentActions(store.Session{Ticket: "K1", State: s})) // no worktree
 		check(agentActions(store.Session{Ticket: "K2", State: s})) // with worktree
 	}
-	m := monitorModel{flat: []store.Session{{Ticket: "K2", State: store.StateNeedsYou}}, cursor: 3}
+	m := monitorModel{flat: []store.Session{{Ticket: "K2", State: store.StateNeedsYou}}, cursor: len(dashCommands)}
 	check(m.paletteItems())
 }
 

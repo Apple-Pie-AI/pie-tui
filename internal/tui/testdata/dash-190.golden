@@ -4,7 +4,8 @@
 
         Start new ticket(s)             from Jira, or a description you type                                                                                                            
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
-        Edit config                     allowlist, repo, branch, model fields                                                                                                           
+        Edit config                     allowlist, repo, branch                                                                                                                         
+        Edit models                     which Claude model runs each stage                                                                                                              
                                                                                                                              PIE-14 · Review the PR                                     
       N E E D S   Y O U · 1                                                                                                  ┆ Needs you - the agent got stuck (see the log below).     
       ▸ PIE-14                     Review pull request                                                                   4h  ┆ Use the actions menu to open the project or run it again.
@@ -19,7 +20,6 @@
                                                                                                                                                                                         
       ▸ S T O P P E D · 1                                                                                                                                                               
                                                                                                                                                                                         
-
 
 
 

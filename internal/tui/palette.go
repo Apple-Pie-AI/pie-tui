@@ -44,7 +44,8 @@ func (m monitorModel) paletteItems() []paletteItem {
 		paletteItem{actRun, "Start new ticket(s)", "launch a ticket key or .md file"},
 		paletteItem{actRunFromBranch, "Checkout a branch", "check out an existing branch; pie tracks its PR"},
 		paletteItem{actDoctor, "Doctor", "connectivity + setup health check"},
-		paletteItem{actConfig, "Edit config", "allowlist, repo, branch, model fields"},
+		paletteItem{actConfig, "Edit config", "allowlist, repo, branch"},
+		paletteItem{actModels, "Edit models", "which Claude model runs each stage"},
 		paletteItem{actSetup, "Setup wizard", "configure repo, models, and token"},
 	)
 	if _, ok := daemonAlive(); ok {

@@ -1,10 +1,9 @@
-// The "Edit config" screen: links into the per-stage models screen
-// (editmodels.go, leading - the most-visited setting) and the command
-// allowlist review screen (permissions.go), then the repo/branch/plan-review
-// fields the standalone field form (settings.go) has always edited. One hop
-// to touch a field; one more hop, from a link, for models or the allowlist -
-// both used to be flattened inline here, and each buried the fields under a
-// screenful of rows.
+// The "Edit config" screen: a link into the command allowlist review screen
+// (permissions.go), then the repo/branch/plan-review fields the standalone
+// field form (settings.go) has always edited. One hop to touch a field; one
+// more, from the link, for the allowlist - which used to be flattened inline
+// here and buried the fields under a screenful of rows. Models have their own
+// dashboard row ("Edit models", editmodels.go).
 package tui
 
 import (
@@ -13,16 +12,15 @@ import (
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 )
 
-// editConfigState is the screen's state: two link rows lead (the per-stage
-// models at 0 - the most-visited setting leads - the command allowlist at 1),
-// the general config fields follow, Save is last.
+// editConfigState is the screen's state: the allowlist link leads, the
+// general config fields follow, Save is last.
 type editConfigState struct {
 	cfgFields []formField
 	cursor    int
 	loadErr   error
 }
 
-const editConfigLinks = 2 // allowlist, models
+const editConfigLinks = 1 // the allowlist
 
 func (e *editConfigState) fieldStart() int { return editConfigLinks }
 func (e *editConfigState) fieldEnd() int   { return e.fieldStart() + len(e.cfgFields) }
@@ -72,9 +70,7 @@ func (m monitorModel) updateEditConfig(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		switch e.cursor {
 		case 0:
-			m.openEditModels() // the per-stage models screen; own Save/Esc, returns to the dashboard directly
-		case 1:
-			m.openPermissions() // the nested allowlist screen; same nesting contract
+			m.openPermissions() // the nested allowlist screen; own Esc, returns to the dashboard directly
 		case e.saveIdx():
 			return m.applyEditConfig()
 		}

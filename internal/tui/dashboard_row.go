@@ -1,4 +1,4 @@
-// The dashboard's rows: the three command rows at the top and the ticket rows
+// The dashboard's rows: the command rows at the top and the ticket rows
 // below them, drawn on one grid so a single cursor runs from the first line of
 // the screen to the last.
 //
@@ -23,10 +23,11 @@ import (
 var dashCommands = []struct{ label, meta string }{
 	{"Start new ticket(s)", "from Jira, or a description you type"},
 	{"Checkout a branch", "check out an existing branch into a pie worktree"},
-	{"Edit config", "allowlist, repo, branch, model fields"},
+	{"Edit config", "allowlist, repo, branch"},
+	{"Edit models", "which Claude model runs each stage"},
 }
 
-// renderCommandRow draws one of the three commands.
+// renderCommandRow draws one of the commands.
 //
 // A command and a menu item are the same kind of thing - a verb and the
 // consequence of choosing it - so they are built the same way. Only the row the
@@ -45,8 +46,8 @@ func (m monitorModel) renderCommandRow(i int, cw int, cursor bool) string {
 	metaW := cw - dashCursorW - labelW
 
 	sty := stAccent
-	if i == len(dashCommands)-1 {
-		sty = stMeta // Edit config is quieter than the two that start work
+	if i >= 2 {
+		sty = stMeta // the settings rows are quieter than the two that start work
 	}
 	if cursor {
 		sty = stFocus

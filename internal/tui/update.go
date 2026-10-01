@@ -149,6 +149,12 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.change.diffErr = ""
 		m.change.files, m.change.diff = msg.files, msg.diff
 		return m, nil
+	case modelCheckMsg:
+		if m.modelChecks == nil {
+			m.modelChecks = map[string]modelCheckState{}
+		}
+		m.modelChecks[msg.model] = modelCheckState{result: msg.result}
+		return m, nil
 	case changeRepoFilesMsg:
 		rfl := newRepoFileList(msg.files)
 		if m.repoFileCache == nil {
@@ -417,6 +423,9 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		if m.cursor == 2 {
 			return m.doAction(actConfig)
+		}
+		if m.cursor == 3 {
+			return m.doAction(actModels)
 		}
 		// A collapsible section header folds/unfolds on Enter. The cursor stays
 		// put: the header's own index never moves, since toggling only inserts

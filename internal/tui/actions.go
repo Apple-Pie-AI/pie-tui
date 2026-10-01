@@ -303,6 +303,8 @@ func (m monitorModel) doAction(id actionID) (tea.Model, tea.Cmd) {
 		return m, m.runDoctor()
 	case actConfig:
 		m.openEditConfig()
+	case actModels:
+		m.openEditModels()
 	case actSetup:
 		m.openSetupForm()
 	case actDaemonStart:

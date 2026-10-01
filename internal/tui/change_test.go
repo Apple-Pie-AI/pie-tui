@@ -950,9 +950,9 @@ func TestChangeDashboardRow(t *testing.T) {
 	if !strings.Contains(out, letterSpace("NEEDS YOU")) || !strings.Contains(out, "review bef") {
 		t.Errorf("dashboard missing the gate row:\n%s", out)
 	}
-	// Walk the cursor onto the ticket row (the fixed Start/Config rows lead).
+	// Walk the cursor onto the ticket row (the fixed command rows lead).
 	found := false
-	for cur := 0; cur < len(m.rows)+3; cur++ {
+	for cur := 0; cur < len(m.rows)+len(dashCommands); cur++ {
 		m.cursor = cur
 		if s := m.selected(); s != nil && s.Ticket == "C-1" {
 			found = true
