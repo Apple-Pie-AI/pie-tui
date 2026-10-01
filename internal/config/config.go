@@ -65,13 +65,16 @@ type Config struct {
 	// ModelCommentFix, when set, runs the review-comment fix (and its revise
 	// round, which resumes the same session) on its own model instead of
 	// ModelImpl.
-	ModelCommentFix     string `toml:"model_comment_fix"`
-	AVDName             string `toml:"avd_name"`
-	AndroidSDKPath      string `toml:"android_sdk_path"`
-	EmulatorIdleTimeout int    `toml:"emulator_idle_timeout"`
-	TelemetryEnabled    *bool  `toml:"telemetry_enabled"`
-	DeviceID            string `toml:"device_id"`
-	ReviewPlans         bool   `toml:"review_plans"` // default per-ticket answer for the plan-review gate
+	ModelCommentFix string `toml:"model_comment_fix"`
+	// SavedModels are model names the user added from the models screen,
+	// offered in every stage's picker - passed to `claude --model` verbatim.
+	SavedModels         []string `toml:"saved_models"`
+	AVDName             string   `toml:"avd_name"`
+	AndroidSDKPath      string   `toml:"android_sdk_path"`
+	EmulatorIdleTimeout int      `toml:"emulator_idle_timeout"`
+	TelemetryEnabled    *bool    `toml:"telemetry_enabled"`
+	DeviceID            string   `toml:"device_id"`
+	ReviewPlans         bool     `toml:"review_plans"` // default per-ticket answer for the plan-review gate
 	// ReviewBeforePR pauses every ticket after a green verify so the human
 	// reviews the local change before a PR is created. A pointer so "absent"
 	// defaults to ON - stopping before anything leaves the machine is the

@@ -181,3 +181,20 @@ func TestIntegrationLaunchFailureIsNamed(t *testing.T) {
 		t.Errorf("launch failure not named: ErrorText=%q stderr=%q", res.ErrorText, res.Stderr)
 	}
 }
+
+// The models screen's check, against the real CLI: an alias the account has
+// resolves to a model of that family, and a name Claude Code refuses comes
+// back as an error, not a success. Uses haiku, so a run costs well under a cent.
+func TestIntegrationCheckModel(t *testing.T) {
+	realClaude(t)
+	ctx := context.Background()
+	ok := agent.CheckModel(ctx, "haiku", "")
+	if ok.Err != "" || !strings.Contains(ok.Resolved, "haiku") || ok.Mismatch("haiku") {
+		t.Fatalf("haiku check = %+v, want a haiku model with no error", ok)
+	}
+	bad := agent.CheckModel(ctx, "claude-nonexistent-9", "")
+	if bad.Err == "" || bad.Resolved != "" {
+		t.Fatalf("a made-up model must be refused, got %+v", bad)
+	}
+	t.Logf("haiku → %s; refusal: %s", ok.Resolved, bad.Err)
+}

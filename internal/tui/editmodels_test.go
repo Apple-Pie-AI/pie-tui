@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 )
 
@@ -51,7 +52,7 @@ func TestEditModelsPickerMarksSelection(t *testing.T) {
 	m := editConfigModel(t, &config.Config{})
 	m.openEditModels()
 	m = emPress(t, m, ecEnter(), ecDown())
-	if out := stripAnsiStr(m.renderEditModels(120)); !strings.Contains(out, "▸ fable") {
+	if out := stripAnsiStr(m.renderEditModels(120)); !strings.Contains(out, "▸ opus") {
 		t.Fatalf("the selected option must carry the ▸ marker:\n%s", out)
 	}
 }
@@ -67,8 +68,8 @@ func TestEditModelsSavesOnlyModels(t *testing.T) {
 	})
 	m.openEditModels()
 	// Cursor starts on field 0 (plan); move to comment-fix (field 4) and pick
-	// "opus": options are [Same as implementation, fable, opus, ...].
-	m = emPress(t, m, ecDown(), ecDown(), ecDown(), ecDown(), ecEnter(), ecDown(), ecDown(), ecEnter())
+	// "opus": options are [Same as implementation, opus, sonnet, haiku, ...].
+	m = emPress(t, m, ecDown(), ecDown(), ecDown(), ecDown(), ecEnter(), ecDown(), ecEnter())
 	if got := fieldValue(m.editModels.fields, fldModelCommentFix); got != "opus" {
 		t.Fatalf("comment-fix field = %q, want the picked alias", got)
 	}
@@ -138,11 +139,11 @@ func TestEditModelsPickerOpensOnCurrentAndEscKeepsValue(t *testing.T) {
 		t.Fatalf("a letter on a model row must do nothing: view=%v plan=%q", m.view, fieldValue(m.editModels.fields, fldModelPlan))
 	}
 	m = emPress(t, m, ecEnter())
-	opts := modelOptions(fldModelPlan)
-	if !m.editModels.picking || opts[m.editModels.pickSel].value != "sonnet" {
-		t.Fatalf("picker must open on the current value: picking=%v sel=%d", m.editModels.picking, m.editModels.pickSel)
+	e := m.editModels
+	if !e.picking || e.options(e.fields[0])[e.pickSel].value != "sonnet" {
+		t.Fatalf("picker must open on the current value: picking=%v sel=%d", e.picking, e.pickSel)
 	}
-	if out := m.renderEditModels(120); !strings.Contains(out, "sonnet  (current)") || !strings.Contains(out, "Custom…") {
+	if out := stripAnsiStr(m.renderEditModels(140)); !strings.Contains(out, "sonnet  (current)") || !strings.Contains(out, "Add a model…") {
 		t.Fatalf("picker must list the options and tag the current one:\n%s", out)
 	}
 	m = emPress(t, m, ecDown(), ecEsc())
@@ -165,8 +166,7 @@ func TestEditModelsBlankOptionIsPerStage(t *testing.T) {
 	if got := fieldValue(m.editModels.fields, fldModelPlan); got != "" {
 		t.Fatalf("the first option must clear the field, got %q", got)
 	}
-	out := m.renderEditModels(160)
-	if !strings.Contains(out, "Claude Code default") {
+	if out := m.renderEditModels(160); !strings.Contains(out, "Claude Code default") {
 		t.Errorf("blank plan must read as Claude Code's default:\n%s", out)
 	}
 	if blankModelLabel(fldModelVerify) != "Same as implementation" || blankModelLabel(fldModelCommentFix) != "Same as implementation" {
@@ -174,38 +174,140 @@ func TestEditModelsBlankOptionIsPerStage(t *testing.T) {
 	}
 }
 
-// Custom… opens free text: typing sets any id, Enter keeps it, and a custom
-// id reopens on Custom… with its text ready to edit. Esc restores the value.
-func TestEditModelsCustomID(t *testing.T) {
+// emPickLast opens the focused stage's picker and moves to its last option.
+func emPickLast(t *testing.T, m monitorModel) monitorModel {
+	t.Helper()
+	m = emPress(t, m, ecEnter())
+	for i := 0; i < 20; i++ {
+		m = emPress(t, m, ecDown())
+	}
+	return m
+}
+
+// "Add a model…" saves any name to every stage's list and sets it on this
+// stage; Save persists the list. Esc while typing cancels the add.
+func TestEditModelsAddSavedModel(t *testing.T) {
 	m := editConfigModel(t, &config.Config{ModelImpl: "haiku"})
 	m.openEditModels()
-	m = emPress(t, m, ecDown(), ecEnter()) // impl row, picker on haiku
-	for i := 0; i < 10; i++ {
+	m = emPress(t, m, ecDown()) // impl
+	m = emPickLast(t, m)        // no saved models yet: Add is last
+	m = emPress(t, m, ecEnter())
+	if !m.editModels.adding {
+		t.Fatal("Add a model… must open the text field")
+	}
+	m = emType(t, m, "claude-nope")
+	m = emPress(t, m, ecEsc())
+	if m.editModels.adding || len(m.editModels.saved) != 0 || fieldValue(m.editModels.fields, fldModelImpl) != "haiku" {
+		t.Fatalf("esc must cancel the add: adding=%v saved=%v", m.editModels.adding, m.editModels.saved)
+	}
+
+	m = emPickLast(t, m)
+	m = emPress(t, m, ecEnter())
+	m = emType(t, m, " claude-opus-4-6 ")
+	m = emPress(t, m, ecEnter())
+	if got := fieldValue(m.editModels.fields, fldModelImpl); got != "claude-opus-4-6" {
+		t.Fatalf("the added model must be set on this stage, got %q", got)
+	}
+	m = emPress(t, m, ecUp(), ecEnter()) // the plan stage's picker offers it too
+	if out := stripAnsiStr(m.renderEditModels(160)); !strings.Contains(out, "claude-opus-4-6  saved") {
+		t.Fatalf("a saved model must be offered on every stage:\n%s", out)
+	}
+	m = emPress(t, m, ecEsc())
+	for m.editModels.cursor < m.editModels.saveIdx() {
 		m = emPress(t, m, ecDown())
 	}
 	m = emPress(t, m, ecEnter())
-	if !m.editModels.editing || fieldValue(m.editModels.fields, fldModelImpl) != "" {
-		t.Fatalf("Custom… must open an empty text field over an alias: editing=%v value=%q",
-			m.editModels.editing, fieldValue(m.editModels.fields, fldModelImpl))
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatal(err)
 	}
-	m = emType(t, m, "claude-opus-5-5")
+	if cfg.ModelImpl != "claude-opus-4-6" || len(cfg.SavedModels) != 1 || cfg.SavedModels[0] != "claude-opus-4-6" {
+		t.Fatalf("saved: impl=%q list=%v", cfg.ModelImpl, cfg.SavedModels)
+	}
+}
+
+// "Remove a saved model…" drops a name from the list; a stage already set to
+// it keeps the value, shown as its current setting.
+func TestEditModelsRemoveSavedModel(t *testing.T) {
+	m := editConfigModel(t, &config.Config{ModelImpl: "claude-a", SavedModels: []string{"claude-a", "claude-b"}})
+	m.openEditModels()
+	m = emPickLast(t, m) // plan stage; Remove is last once something is saved
 	m = emPress(t, m, ecEnter())
-	if m.editModels.editing || fieldValue(m.editModels.fields, fldModelImpl) != "claude-opus-5-5" {
-		t.Fatalf("enter must keep the typed id: editing=%v value=%q", m.editModels.editing, fieldValue(m.editModels.fields, fldModelImpl))
+	if !m.editModels.removing {
+		t.Fatal("Remove a saved model… must open the saved list")
+	}
+	m = emPress(t, m, ecEnter(), ecEsc()) // remove claude-a
+	if len(m.editModels.saved) != 1 || m.editModels.saved[0] != "claude-b" {
+		t.Fatalf("saved = %v, want only claude-b", m.editModels.saved)
+	}
+	m = emPress(t, m, ecDown(), ecEnter()) // impl picker
+	if out := stripAnsiStr(m.renderEditModels(160)); !strings.Contains(out, "claude-a  (current)  current setting") {
+		t.Fatalf("a stage set to a removed model keeps it as its current setting:\n%s", out)
+	}
+}
+
+// A company's curated /model list (Claude Code's modelPicker) leads, with its
+// labels, ahead of the aliases; replacing the built-in lineup drops them.
+func TestEditModelsCompanyListLeads(t *testing.T) {
+	m := editConfigModel(t, &config.Config{ModelImpl: "claude-haiku-4-5"})
+	stubModelPicker(t, agent.ModelPicker{File: "/managed-settings.json", Rows: []agent.PickerModel{
+		{Model: "claude-haiku-4-5", Label: "Haiku 4.5"}, {Model: "claude-opus-4-6"}}})
+	m.openEditModels()
+	m = emPress(t, m, ecDown())
+	out := stripAnsiStr(m.renderEditModels(160))
+	if !strings.Contains(out, "Haiku 4.5 · claude-haiku-4-5") || !strings.Contains(out, "/managed-settings.json") {
+		t.Fatalf("the stage must show the company label and the list's source:\n%s", out)
+	}
+	opts := m.editModels.options(m.editModels.fields[1])
+	var got []string
+	for _, o := range opts {
+		got = append(got, o.label)
+	}
+	want := []string{"Claude Code default", "Haiku 4.5", "claude-opus-4-6", "opus", "sonnet", "haiku"}
+	if len(got) < len(want) || strings.Join(got[:len(want)], "|") != strings.Join(want, "|") {
+		t.Fatalf("options = %v, want %v first", got, want)
 	}
 
-	m = emPress(t, m, ecEnter()) // reopen: lands on Custom…, showing the id
-	if opts := modelOptions(fldModelImpl); m.editModels.pickSel != len(opts)-1 {
-		t.Fatalf("a custom id must reopen on Custom…, sel=%d", m.editModels.pickSel)
+	stubModelPicker(t, agent.ModelPicker{ReplaceBuiltIns: true, Rows: []agent.PickerModel{{Model: "claude-haiku-4-5", Label: "Haiku 4.5"}}})
+	m.openEditModels()
+	for _, o := range m.editModels.options(m.editModels.fields[0]) {
+		if o.value == "opus" || o.value == "sonnet" || o.value == "haiku" {
+			t.Fatalf("a list that replaces the built-in lineup must not add aliases: %+v", o)
+		}
 	}
-	if out := m.renderEditModels(120); !strings.Contains(out, "Custom… · claude-opus-5-5  (current)") {
-		t.Fatalf("the picker must show the current custom id:\n%s", out)
+}
+
+// Picking a model starts one background check per session; its result shows
+// on the stage row: what ran, a refusal, or a different model than asked.
+func TestEditModelsCheckShowsOnRow(t *testing.T) {
+	m := editConfigModel(t, &config.Config{})
+	m.openEditModels()
+	m = emPress(t, m, ecEnter(), ecDown()) // plan picker on "opus"
+	mm, cmd := m.updateEditModels(ecEnter())
+	m = mm.(monitorModel)
+	if cmd == nil || !m.modelChecks["opus"].pending {
+		t.Fatalf("picking a model must start its check: cmd=%v state=%+v", cmd != nil, m.modelChecks["opus"])
 	}
-	m = emPress(t, m, ecEnter()) // edit it: text kept, not cleared
-	m = emType(t, m, "-x")
-	m = emPress(t, m, ecEsc())
-	if got := fieldValue(m.editModels.fields, fldModelImpl); got != "claude-opus-5-5" {
-		t.Fatalf("esc in the custom field must restore the previous id, got %q", got)
+	if !strings.Contains(stripAnsiStr(m.renderEditModels(140)), "opus  checking…") {
+		t.Fatalf("a running check must show:\n%s", stripAnsiStr(m.renderEditModels(140)))
+	}
+	m = emPress(t, m, ecEnter())
+	if _, cmd := m.updateEditModels(ecEnter()); cmd != nil {
+		t.Fatal("a model already checked this session must not be checked again")
+	}
+
+	for _, tc := range []struct {
+		res  agent.ModelCheck
+		want string
+	}{
+		{agent.ModelCheck{Resolved: "claude-opus-4-6"}, "opus  ✓ claude-opus-4-6"},
+		{agent.ModelCheck{Resolved: "claude-sonnet-5"}, "opus  ⚠ ran claude-sonnet-5 instead"},
+		{agent.ModelCheck{Err: "There's an issue with the selected model"}, "opus  ✗ There's an issue"},
+	} {
+		got, _ := m.Update(modelCheckMsg{model: "opus", result: tc.res})
+		if out := stripAnsiStr(got.(monitorModel).renderEditModels(160)); !strings.Contains(out, tc.want) {
+			t.Errorf("result %+v: want %q on the row:\n%s", tc.res, tc.want, out)
+		}
 	}
 }
 

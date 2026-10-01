@@ -129,6 +129,10 @@ type monitorModel struct {
 	// worktree so a screen reopened - or a second screen against the same
 	// worktree - reuses the load instead of re-shelling out (mention_picker.go).
 	repoFileCache map[string]repoFileList
+
+	// modelChecks are the models screen's background checks, keyed by model
+	// name and kept for the session (editmodels_options.go).
+	modelChecks map[string]modelCheckState
 }
 
 // answerState is the answer-and-resume overlay, which pre-empts whatever view is

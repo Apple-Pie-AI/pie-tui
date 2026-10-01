@@ -6,6 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 )
 
@@ -15,9 +16,19 @@ func editConfigModel(t *testing.T, cfg *config.Config) monitorModel {
 	if err := config.Save(cfg); err != nil {
 		t.Fatal(err)
 	}
+	stubModelPicker(t, agent.ModelPicker{})
 	var m monitorModel
 	m.openEditConfig()
 	return m
+}
+
+// stubModelPicker stands in for Claude Code's curated /model list, so tests
+// never read the settings of the machine running them.
+func stubModelPicker(t *testing.T, p agent.ModelPicker) {
+	t.Helper()
+	prev := loadModelPicker
+	loadModelPicker = func() (agent.ModelPicker, bool) { return p, p.File != "" || len(p.Rows) > 0 }
+	t.Cleanup(func() { loadModelPicker = prev })
 }
 
 func ecEnter() tea.KeyMsg { return tea.KeyMsg{Type: tea.KeyEnter} }

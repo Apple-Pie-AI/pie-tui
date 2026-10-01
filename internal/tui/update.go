@@ -149,6 +149,12 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.change.diffErr = ""
 		m.change.files, m.change.diff = msg.files, msg.diff
 		return m, nil
+	case modelCheckMsg:
+		if m.modelChecks == nil {
+			m.modelChecks = map[string]modelCheckState{}
+		}
+		m.modelChecks[msg.model] = modelCheckState{result: msg.result}
+		return m, nil
 	case changeRepoFilesMsg:
 		rfl := newRepoFileList(msg.files)
 		if m.repoFileCache == nil {
