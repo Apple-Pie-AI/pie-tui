@@ -58,6 +58,38 @@ git so it can be rotated in one place. To rotate: create a new key in PostHog,
 rerun the command above with it, and update the `POSTHOG_API_KEY` repo secret
 (see CI fallback).
 
+## Building binaries locally
+
+`make build` gives you a quick host binary. To produce distributable builds, use `scripts/build.sh`, which has two shapes:
+
+```bash
+scripts/build.sh test   # plain go build     → dist/test/<os>_<arch>/pie
+scripts/build.sh prod   # obfuscated build   → dist/prod/<os>_<arch>/pie
+```
+
+`prod` is what ships: it runs the binary through garble at max settings (`-literals -tiny -seed=random`), so string constants are encrypted, the symbol table is stripped, and there are no readable stack traces (Decision 18). `test` is the same code without obfuscation — faster to build and debuggable.
+
+The default target is **darwin/arm64** (Apple Silicon). Add more with flags:
+
+| Flag | Effect |
+|---|---|
+| `--linux` | also build `linux/amd64` + `linux/arm64` |
+| `--darwin-amd64` | also build `darwin/amd64` (Intel Mac) |
+| `--windows` | coming soon — not yet buildable (unix-only syscalls), skipped with a note |
+| `--all` | every buildable target |
+| `--clean` | wipe `dist/<mode>/` first |
+| `--version V` | override the version string (default: `git describe`) |
+
+```bash
+scripts/build.sh prod --linux --clean     # obfuscated macOS-arm64 + both Linux arches
+make build-prod ARGS='--linux --clean'     # same, via the Makefile
+make build-test ARGS='--all'               # non-obfuscated, every target
+```
+
+macOS binaries are ad-hoc codesigned so Gatekeeper doesn't kill them. A `prod` build needs the real Go SDK from [One-time setup](#one-time-setup) on `PATH`.
+
+`scripts/build.sh` is for producing binaries; GoReleaser (below, or `make snapshot-obf` to dry-run it locally) is for packaging and publishing them.
+
 ## Cutting a release
 
 ```bash

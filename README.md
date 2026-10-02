@@ -2,51 +2,65 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><em>A native mobile app harness that drives agentic CLIs to run enterprise mobile development cycles.</em></p>
+<p align="center"><strong>A harness for Android development.</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-You already use an agentic CLI to work tickets by hand: plan the change, make it, run the build and tests, open the PR, repeat. Apple Pie runs that loop for you. Each ticket goes through plan → implement → verify in its own git worktree and comes out the other side as a Pull Request. Run many in parallel, watch them all from one control pane, and get pulled in only when an agent is genuinely stuck. My own PR count roughly doubled; now I mostly just review.
+Apple Pie use your current Claude Code subscription to run the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
 
-https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8c55bba6-e774-4d1f-8b27-d34b6423e788" alt="apple-pie-review-mobile" width="720">
+</p>
 
-## What ships today
+## Everything in one control pane
 
-| Area | Shipped today | Where it's headed |
-|------|---------------|-------------------|
-| **Agent CLI** | Claude Code, driven through `claude -p` | Codex and other agentic CLIs behind the same harness |
-| **Platform** | Android: Gradle builds, AVD/emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
-| **Tickets** | Jira keys and local markdown files | — |
-| **Review** | GitHub Pull Requests via `gh` | — |
+From the apple pie dashboard you:
 
-The left column is real and exercised end to end. The right column is not built yet — there is no Codex adapter, and the Xcode/simulator path for the iOS preview is under active development.
+- **From ticket to PR:** Give Apple Pie a ticket, review and iterate on the plan, then approve it to implement, verify, and open a PR following your branch and workflow conventions.
+- **Handle review comments** Review and resolve GitHub comments without leaving Apple Pie. See each comment alongside its diff, choose which ones to address, and approve the fixes and replies before they're posted.
+- **Review the diff** Review every changed file before anything is committed. Ask for changes directly in chat, right next to the code you're reviewing.
+- **Take over when you want to** Open any worktree in Android Studio or jump directly into the agent's Claude Code session whenever you want to take control.
+- **Choose the right model for each stage** Configure different models for planning, implementation, verification, self-review, and review-comment fixes, without manually switching between them.
 
-## How it works
+The agents are in different stages in the dashboard:
 
-```mermaid
-flowchart LR
-  T["Ticket"] --> P["Plan"]
-  P --> G{"Review the plan?"}
-  G -->|approved| I["Implement"]
-  G -->|feedback| P
-  I --> V["Verify"]
-  V -->|green| R["Pull Request"]
-  V -->|"not green"| N["NEEDS YOU"]
-  P -->|questions| N
-  N -->|"you unblock it"| I
-```
+* **NEEDS YOU** — a plan to approve, questions to answer, changes to review, comment fixes to preview, or a run that got stuck.
+* **RUNNING** — agents planning, implementing, or verifying.
+* **PR READY FOR REVIEW** — open pull requests. Moved to **NEEDS YOU** when the Pull Request has open comments.
+* **CLOSED** — when a Pull Request is merged or closed, it appears here. The worktree is cleaned up.
+* **STOPPED** — when you decide to stop an agent from the TUI or CLI. The worktree is cleaned up.
 
-| Stage | What it does |
-|-------|--------------|
-| **Plan** | Explores the codebase read-only and writes a free-form markdown plan. Apple Pie doesn't constrain how it plans — it only extracts what the orchestrator needs: blocking questions, and whether the ticket needs an emulator or unit tests only |
-| **Implement** | Makes the change the plan describes, then adversarially reviews its own diff and fixes what that review turns up |
-| **Verify** | Discovers how *your* project builds, runs the real build and tests (booting the emulator if needed), and certifies green only after seeing them pass |
+Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. 
 
-The interesting part is verification. Apple Pie does not run Gradle itself. The agent discovers and runs your project's own build and test commands — whatever they are, including company build scripts — and self-certifies the result in a report the orchestrator reads. That report is freshness-checked, so a crashed run can't leave a stale "it passed" behind. No certification, no PR: the ticket goes to **NEEDS YOU** instead.
+See it in action solving PR comments:
 
-Apple Pie's own artifacts never reach your PRs. Plans, reports, and review verdicts are archived under `~/.pie`, and the `.agent/` scratch directory agents use inside the worktree is git-excluded and scrubbed before every commit.
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1e985616-3179-40a1-b797-8779d789fc35" alt="apple-pie-review-mobile" width="720">
+</p>
+
+## You stay in control
+
+- **Isolated worktrees.** Every agent works in `~/.pie/worktrees/<ticket>`. Your main checkout isn't modified.
+- **Plans can require approval.** Turn on the plan gate and nothing is written until you approve the plan.
+- **Changes require approval.** By default, before anything is committed or pushed, you see every changed file and its diff.
+- **Commands can require approval.** Anything outside your allowlist pauses the agent and asks you on the dashboard. Your Claude Code `ask`/`deny` rules still apply.
+- **Builds must actually pass.** No fresh, successful verification, no PR. The one way around it is `--ship`, a human override for a fix you've checked yourself.
+- **Review-comment fixes are previewed.** You see each fix's diff and the reply before anything is pushed or posted.
+- **Nothing merges itself.** There is no auto-merge, no merge flag, and no code path that merges a pull request.
+- **Apple Pie's own files never reach your PRs.** Plans, reports, and logs live under `~/.pie`; the agent's scratch directory is git-excluded and scrubbed before every commit.
+
+How each workflow runs, every gate, and the full state machine are in [docs/workflows.md](docs/workflows.md).
+
+## Built for Android
+
+General coding agents don't know what verifying an Android change means. Apple Pie's stages do:
+
+- **Your build, not a guess.** The agent discovers how *your* project builds and tests — Gradle tasks, multi-module and KMP projects, company build scripts — runs them for real, and self-certifies the result in a report Apple Pie checks for freshness, so a crashed run can't leave a stale "it passed" behind.
+- **Unit vs. instrumented tests.** Decided at plan time, enforced at verify time.
+- **Emulator coordination.** The SDK and AVD are auto-detected, and parallel agents take turns on the emulator through a shared lock, so no two agents fight over a device. The background daemon shuts it down when it's been idle.
+- **Android Studio handoff.** Open any agent's worktree in the IDE, and your hand-edits there count: the change is re-verified before it ships.
 
 ## Install
 
@@ -105,8 +119,7 @@ xattr -d com.apple.quarantine ~/.local/bin/pie 2>/dev/null
 
 Versioned archives (`.zip` for macOS, `.tar.gz` for Linux) and a SHA-256 `checksums.txt` are attached to every release.
 
-Prefer to build it yourself? See [Under the hood](#under-the-hood).
-
+Prefer to build it yourself? See [Build from source](#build-from-source).
 ## First steps
 
 Never run this before? Do these eight steps in order. Nothing here touches your repo or opens a PR until step 8.
@@ -188,193 +201,29 @@ pie logs FIRST-TICKET                         # the whole session
 
 **8. Do it for real.** Drop `--dry-run` on a second local ticket to get an actual pull request, or connect [Jira](docs/jira.md) and run `pie run PROJ-123`.
 
-Whichever you pick, the guarantee is the same: **it stops at `review`. Apple Pie never merges anything.** When you're done experimenting, press <kbd>x</kbd> on a ticket in the TUI to stop it and remove its worktree.
+Whichever you pick, the guarantee is the same: **it stops at `review`. Apple Pie never merges anything.** When you're done experimenting, choose **Stop & clean up** from a ticket's menu in the TUI to stop it and remove its worktree.
 
 ## Using it day to day
 
-Bare `pie` is the dashboard, and it's where most of the work happens: write or paste a ticket, confirm its id and branch name, press enter. Queue several and they run in parallel.
+Bare `pie` is the dashboard, and it's where most of the work happens: choose **Start new ticket(s)**, write or paste a ticket, confirm its id and branch name, press enter. Start several and they run in parallel. <kbd>:</kbd> opens the command palette for doctor, config, and the daemon.
 
-| Key | Action |
-|---|---|
-| <kbd>↑</kbd> <kbd>↓</kbd> | Move |
-| <kbd>enter</kbd> | Choose — on a paused ticket, read its plan |
-| <kbd>n</kbd> | Start new ticket(s) |
-| <kbd>a</kbd> | Answer a blocked ticket |
-| <kbd>o</kbd> | Open the worktree in Android Studio |
-| <kbd>c</kbd> | Open the session in Claude Code |
-| <kbd>R</kbd> | Resume from the last stage |
-| <kbd>x</kbd> | Stop and clean up |
-| <kbd>:</kbd> | Command palette — everything above, plus doctor, config, and the daemon |
-
-Everything is available from the CLI too:
+The CLI does the same things:
 
 ```bash
 pie run PROJ-123              # one ticket → PR
-pie run PROJ-123 PROJ-124     # two tickets in parallel
 pie run a.md b.md c.md        # local markdown tickets, in parallel
-
-pie doctor                    # check git, claude, and gh connectivity
-pie logs PROJ-123             # print the session log for a ticket
 pie status                    # table of all sessions (--watch to follow)
-pie start                     # background cleanup daemon (--once for a single pass)
-pie stop                      # stop the daemon
-pie --splash                  # replay the title screen
+pie logs PROJ-123             # print the session log for a ticket
+pie doctor                    # check git, claude, and gh connectivity
 ```
 
-`pie start` is a janitor, not a scheduler — it reclaims worktrees once their PRs are merged or closed, and shuts the emulator down when it's been idle. Tickets are always started by you, from `pie run` or the TUI.
-
-### Every `pie run` flag
-
-| Flag | What it does |
-|---|---|
-| `--dry-run` | Everything except `git push` and the PR. Try this first |
-| `--review-plan` | Pause after planning so you can approve or redirect before any code is written |
-| `--branch <name>` | Exact branch name for the PR, overriding the config pattern. One ticket at a time |
-| `--from-branch <name>` | Work ON an existing branch instead of creating one — address PR feedback, or have the agent review a PR's code. Never resets the branch. One ticket at a time |
-| `--base <ref>` | Base branch — or another ticket's id — to stack on. The PR targets it |
-| `--repo <path>` | Which configured repo to use. Defaults to the first one |
-| `--resume` | Keep your manual fixes in the existing worktree, re-run verification, then PR |
-| `--ship` | Skip verification entirely: commit, push, and PR from your manual fix |
-| `--from-plan` | Skip planning and implement from the `plan.json` already in the worktree |
-| `--address-comments` | Fix the PR review comments selected in the dashboard — locally only, then pause at `fixes ready` for your approval. The TUI spawns this for you |
-| `--feedback <text>` | With `--address-comments`: revise the local fixes per this correction, resuming the fix session. The TUI's "Request changes" sends this |
-| `--ship-comments` | The approval: verify, commit, push to the PR, and post the previewed replies. The TUI's approve bar spawns this |
-| `--local` | Skip Jira and take the ticket from `--title`/`--desc` |
-| `--title` / `--desc` | The ticket summary and body, with `--local` |
-| `--splash` | Replay the title screen first. Works on any command |
-
-`--base` accepts a ticket id as well as a branch name, so `pie run PROJ-124 --base PROJ-123` builds on the branch PROJ-123 created and opens its PR against it. A plain re-run of a stacked ticket keeps its base rather than silently resetting to the default branch.
-
-## Staying in control
-
-Apple Pie is built to hand tickets back rather than plough through them. Three mechanisms do that.
-
-**The plan review gate.** Turn it on per ticket when queueing, with `--review-plan`, or as your default with `review_plans` in the config. The run pauses after planning; you read the plan in the TUI's full-screen viewer and either approve it or send feedback for a re-plan. Every plan is archived to `~/.pie/plans/<ticket>.md` regardless, so you can read it after the fact with **View Plan**.
-
-**The review-before-PR gate (on by default).** After the agent's change builds and verifies, the ticket parks under NEEDS YOU as "review before PR" — nothing is committed, pushed, or opened as a PR yet. Enter opens the change screen: the file list with the verify summary on the left, each file's diff on the right; → reads a file full screen, enter inside it scrolls, and enter while scrolling anchors a note to the visible lines. Mark files with notes or revert them to base (both pending and undoable until an action runs), then **Send feedback** — the agent reworks and the screen returns as round 2, showing what changed since your feedback — or **Create pull request**, which re-verifies only if the change moved (your hand-edits in Android Studio count) and then ships. Turn the gate off with `review_before_pr = false`.
-
-**NEEDS YOU.** An ambiguous ticket, a compile error the agent can't fix, or a verification that never went green all land here rather than being forced through. Answer in the TUI, resume the Claude session, or open the worktree in Android Studio and fix it by hand — then `--resume` to re-verify, or `--ship` to trust your fix and PR straight away.
-
-**It stops at `review`.** There is no auto-merge, no merge flag, and no code path anywhere in the project that merges a pull request.
-
-**In-dashboard command approvals.** Agent Bash commands are gated by an allowlist, and your own Claude Code settings (including org-managed `ask`/`deny` rules) always apply on top. When a command needs a human — an `ask` rule fired, or the command isn't allowlisted — the agent pauses and the question comes to the dashboard: a `⏸` banner, the exact rule each *Allow & remember* option would write, and *Deny*; the agent continues in the same session the moment you answer. Commands your allowlist already covers are approved automatically, and everything you've remembered is reviewable, addable, and removable from **Edit config → Edit command allowlist** — arrows, Enter, and Esc, nothing else to learn. The full model — layers, denial diagnosis, the `⏸ approve:` log lines to look for — is in [docs/permissions.md](docs/permissions.md).
-
-```mermaid
-stateDiagram-v2
-  state "awaiting-answer" as awaiting
-  state "plan-review" as planreview
-  state "fix-review" as fixreview
-  state "needs-you" as needsyou
-
-  [*] --> queued
-  queued --> planning
-  planning --> awaiting : questions in the plan
-  planning --> planreview : gate on, no questions
-  planning --> working : gate off
-  awaiting --> planning : you answer
-  planreview --> working : you approve
-  planreview --> planning : you send feedback
-  working --> reviewing
-  reviewing --> building
-  building --> review : verified green
-  building --> needsyou : not green
-  working --> needsyou : agent stuck
-  working --> stopped : you stop and clean up
-  needsyou --> working : you resume
-  planning --> failed : worktree error
-  building --> failed : push or PR error
-  review --> working : you queue review comments
-  working --> fixreview : local fixes ready to preview
-  fixreview --> working : you request changes / you approve
-  review --> merged : you merge the PR
-  review --> closed : you close the PR
-  merged --> [*]
-  closed --> [*]
-  stopped --> [*]
-```
-
-These are the state names `pie status` and the dashboard print. Two rules worth knowing: blocking questions always win over the plan review gate — if the plan has questions you'll be asked them even with the gate off. And `merged` and `closed` aren't set by a run; the cleanup daemon writes them later when it sees what you did with the PR.
-
-## When the reviewers come back
-
-A PR at `review` isn't done — humans (and bots) leave comments on it. The dashboard polls your open PRs and shows a **`N comments`** badge on any ticket whose PR has unresolved review threads. Press <kbd>enter</kbd> on it to triage them.
-
-**One list, one cursor, three keys.** Every open thread is a row: a checkbox, where it's anchored, what it says, and who said it. If the reviewer opened with a marker of their own — `nit:`, `blocking:` — it's lifted out of the prose and shown beside their name in the detail pane; nothing is inferred, because guessing severity from wording would misstate what a reviewer meant. <kbd>↑</kbd><kbd>↓</kbd> moves, <kbd>enter</kbd> acts on the row you're on, <kbd>esc</kbd> backs out one level. There are no letter shortcuts.
-
-<kbd>enter</kbd> on a comment opens its menu: skip it (or fix it), write an instruction for the agent, or open the thread on GitHub. The first item is pre-selected and states the outcome, so skipping a comment is <kbd>enter</kbd> <kbd>enter</kbd>.
-
-The first row is `all comments (8)` — the same box, no menu, and one press flips the lot. That plus the menu is the intended workflow: clear everything in one keystroke, then walk down and check the few you want. The last row is the run row, which spells out what it's about to do before you press it. Below the list, the detail pane shows the file and line, the diff hunk, the comment in full, and **your instruction** — guidance the agent reads before fixing that one comment ("use the existing retry helper"). It is not a reply to the reviewer, which is why it isn't called a note. Rows carrying one show `✎`.
-
-**Nothing is hidden.** Every comment is listed, bots included — CodeRabbit, Copilot and Sonar just get their names tinted. A filter that hides them by default hides their blocking findings and CVE reports too, which is exactly the kind of comment you can't afford to answer a PR without reading. Fetching is automatic (on entry, then every two minutes); the header says `synced 2m ago`, or `sync failed — retrying`.
-
-Run the batch and Apple Pie re-enters the ticket's existing worktree and applies exactly the comments you selected — **locally, and then it stops**. Nothing is committed, pushed, or posted yet. The ticket parks at `fixes ready` and the screen becomes a preview: per comment, the actual worktree diff the fix produced and the reply the agent drafted for the reviewer (or its reason for declining). Three verbs from there:
-
-- **Edit the reply** — rewrite the draft inline; it posts exactly as you typed it, nothing more.
-- **Request changes** — tell the agent what's wrong ("use the existing retry helper instead"); it revises the local fixes in the same session and the preview refreshes. Loop as many times as you like — feedback rounds are fast because verification waits until the end.
-- **Exclude from this ship** — leave a thread open for a later pass; Apple Pie will not mark it addressed, reply to it, or resolve it. If its local code also needs undoing, request changes and tell the agent to revert that part of the batch.
-- **Approve** — the run bar says what it's about to do: verify the build, commit, push to the same branch (the open PR updates in place), post each reply, and mark the threads resolved. Only then does anything leave your machine. The reply and resolve write-backs stay switchable (`review_reply`, `review_resolve`) — on some teams, resolving a thread is the reviewer's call.
-
-The preview is durable — it lives in the worktree and the state database, so you can close the TUI, sleep on it, and approve tomorrow. And a skipped or half-fixed batch isn't a dead end: threads you didn't include keep their badge, and a reviewer replying to any thread reopens it on the next poll.
-
-## Why Android-native matters
-
-General ticket→PR agents don't know what verifying an Android change means. Apple Pie does:
-
-- **Emulator as a shared resource.** The SDK and AVD are auto-detected, and a SQLite-backed semaphore lets parallel agents take turns on one AVD — no two agents fight over a device.
-- **Instrumented vs. unit test routing.** Decided at plan time, enforced at verify time.
-- **Worktree → Android Studio handoff.** One keystroke opens any agent's worktree in the IDE.
-- **Screenshot tickets.** Drag images into the terminal; the agent sees them while planning.
+Every command and `pie run` flag is in [docs/cli.md](docs/cli.md).
 
 ## Configuration
 
-Everything Apple Pie owns lives in one directory:
+Everything Apple Pie owns lives in `~/.pie`: `config.toml` (mode 0600), the SQLite state, one worktree per ticket, and archived plans, reports, and logs. Secrets never go in the config file — they live in your OS keychain, or in `PIE_*` environment variables for headless use.
 
-```
-~/.pie/
-├── config.toml              your settings (mode 0600)
-├── state.db                 SQLite: session and emulator state
-├── worktrees/<TICKET>/      one git worktree per ticket
-├── plans/<TICKET>.md        archived plans (and .json)
-├── reports/<TICKET>.json    what the agent did, and its verification verdict
-├── logs/<TICKET>.log        full session log — what `pie logs` prints
-├── templates/               PR body and Jira comment templates you can edit
-├── daemon.pid, daemon.log   the cleanup daemon
-└── splash-seen              so the title screen only plays once
-```
-
-The keys you'll actually touch in `config.toml`:
-
-| Key | Default | |
-|---|---|---|
-| `[[repo]] path` | — | Your Android project |
-| `[[repo]] branch` | `{ticket}-{slug}` | Branch pattern. `{ticket}` is the lowercased id, `{slug}` the kebab-cased title |
-| `[[repo]] base` | the repo's default branch | What PRs target |
-| `review_plans` | `false` | Pause every ticket for plan review |
-| `review_before_pr` | `true` | Pause every ticket after a green verify to review the change before its PR is created |
-| `review_reply` | `true` | Reply "Fixed in `<sha>`" on each review thread a comment-fix run addresses |
-| `review_resolve` | `true` | Also mark those threads resolved. Turn off where that's the reviewer's call |
-| `model_plan` / `model_impl` / `model_review` | blank | Per-stage models. Blank uses Claude Code's default |
-| `model_verify` / `model_comment_fix` | blank | Models for the verify stage and PR review-comment fixes. Blank falls back to `model_impl` |
-| `saved_models` | `[]` | Models you added on the **Edit models** screen, offered for every stage alongside your company's Claude Code `/model` list and the `opus`/`sonnet`/`haiku` aliases |
-| `max_budget_usd` | `5` | Per-ticket ceiling passed to `claude` |
-
-Secrets never go in the config file — they live in your OS keychain, or in `PIE_JIRA_TOKEN` / `PIE_ANTHROPIC_TOKEN` / `PIE_GIT_TOKEN` for headless use. `PIE_HOME` relocates the whole directory; `PIE_NO_SPLASH=1` and `PIE_NO_SOUND=1` quiet the title screen.
-
-### Reading the allowlist
-
-The rules you'll see in **Edit config → Edit command allowlist** (and in `allowed_tools` / `extra_allowed_tools`) are written in **Claude Code's own permission syntax** — Apple Pie passes them through verbatim, and the same strings work in `~/.claude/settings.json`'s `permissions` arrays. Two kinds of token:
-
-```
-Read                  ← a bare name grants one of Claude Code's built-in tools
-Bash(git diff:*)      ← a Bash(...) rule gates one shell command, by prefix
-```
-
-- **Bare names** are Claude Code's structured tools, not shell commands: `Read` reads a file by path, `Glob` finds files by pattern, `Grep` searches contents, `Edit`/`MultiEdit` make targeted edits, `Write` creates a file, `TodoWrite` is the agent's internal checklist. `Read` does **not** cover `ls` or `cat` — those are shell commands.
-- **`Bash(...)` rules** gate the shell, per command: `Bash(ls:*)` allows anything starting with `ls`, and a rule without `:*` (like `Bash(cd App && ./gradlew test)`, the shape *Allow & remember exact* writes) matches only that verbatim string. Compound commands are checked **per segment** — `cd App && ./gradlew test` needs both `Bash(cd:*)` and `Bash(./gradlew:*)`.
-
-The default list carries both `Read`/`Glob`/`Grep` *and* `Bash(cat:*)`/`Bash(ls:*)`/`Bash(grep:*)` because an agent may read a file through either route, and each is permissioned independently. The full model — layers, rule syntax, approvals — is in **[docs/permissions.md](docs/permissions.md)**.
-
-Full reference: **[docs/configuration.md](docs/configuration.md)**.
+The settings you'll touch most are the gates (`review_plans`, `review_before_pr`), the per-stage models (easiest from **Edit models**), and `max_budget_usd`. Everything else is in [docs/configuration.md](docs/configuration.md); the command allowlist and approvals are in [docs/permissions.md](docs/permissions.md).
 
 ## Cost, telemetry, and privacy
 
@@ -391,42 +240,12 @@ Telemetry is opt-in, asked once during `pie init`. When enabled it sends three e
 | A ticket is stuck or vanished | `pie logs <TICKET>` has the full session. `pie status` shows every state |
 | A ticket landed in NEEDS YOU | Read the reason in the TUI, fix it in `~/.pie/worktrees/<TICKET>`, then `pie run <TICKET> --resume` |
 | Verification skips instrumented tests | `pie doctor` — `avd_name` is probably unset, so it fell back to unit tests |
-| A worktree is wedged | Press <kbd>x</kbd> in the TUI to stop and clean up, then re-run |
+| A worktree is wedged | Choose **Stop & clean up** from its menu in the TUI, then re-run |
 | `go.mod requires go >= 1.26.2` | Building from source with an older Go: prefix with `GOTOOLCHAIN=auto` |
 
-## Under the hood
+## Build from source
 
-```mermaid
-flowchart TB
-  subgraph you["You"]
-    TUI["pie (the TUI)"]
-    CLI["pie run / status / logs"]
-  end
-  subgraph core["Apple Pie"]
-    R["runner: the pipeline"]
-    S["store: SQLite state"]
-    W["git: worktree per ticket"]
-    B["build: emulator and AVD"]
-    V["vcs: pull requests"]
-    J["jira: fetch and comment"]
-  end
-  subgraph ext["Processes it shells out to"]
-    C["claude -p"]
-    G["git"]
-    H["gh"]
-    A["adb, emulator"]
-  end
-  TUI --> R
-  CLI --> R
-  CLI --> J
-  R --> S
-  R --> C
-  R --> W --> G
-  R --> B --> A
-  R --> V --> H
-```
-
-Apple Pie shells out to the real tools rather than wrapping their SDKs. Your `git`, your `gh`, your `claude`, your Android SDK — same binaries, same auth, same config you already use. That keeps the packages small and means anything you can do by hand, Apple Pie can do the same way. It's a single Go binary with no cgo, so releases cross-compile cleanly for macOS and Linux.
+Apple Pie is a single Go binary with no cgo. It shells out to the real tools rather than wrapping their SDKs: your `git`, your `gh`, your `claude`, your Android SDK — same binaries, same auth, same config you already use.
 
 ```bash
 git clone https://github.com/Apple-Pie-AI/pie-tui && cd pie-tui
@@ -437,43 +256,15 @@ make test       # go test ./...
 
 Go 1.26.2 or newer. On an older toolchain, prefix with `GOTOOLCHAIN=auto` and Go will fetch the right one.
 
-### Building release binaries
+## Documentation
 
-`make build` gives you a quick host binary. To produce distributable builds, use `scripts/build.sh`, which has two shapes:
-
-```bash
-scripts/build.sh test   # plain go build     → dist/test/<os>_<arch>/pie
-scripts/build.sh prod   # obfuscated build   → dist/prod/<os>_<arch>/pie
-```
-
-`prod` is what ships: it runs the binary through [garble](https://github.com/burrowers/garble) at max settings (`-literals -tiny -seed=random`), so string constants are encrypted, the symbol table is stripped, and there are no readable stack traces (Decision 18). `test` is the same code without obfuscation — faster to build and debuggable.
-
-The default target is **darwin/arm64** (Apple Silicon). Add more with flags:
-
-| Flag | Effect |
-|---|---|
-| `--linux` | also build `linux/amd64` + `linux/arm64` |
-| `--darwin-amd64` | also build `darwin/amd64` (Intel Mac) |
-| `--windows` | coming soon — not yet buildable (unix-only syscalls), skipped with a note |
-| `--all` | every buildable target |
-| `--clean` | wipe `dist/<mode>/` first |
-| `--version V` | override the version string (default: `git describe`) |
-
-```bash
-scripts/build.sh prod --linux --clean     # obfuscated macOS-arm64 + both Linux arches
-make build-prod ARGS='--linux --clean'     # same, via the Makefile
-make build-test ARGS='--all'               # non-obfuscated, every target
-```
-
-macOS binaries are ad-hoc codesigned so Gatekeeper doesn't kill them. A `prod` build needs a real Go SDK on `PATH` (garble can't use the `GOTOOLCHAIN` auto-download path), new enough for both `go.mod` and garble. garble v0.18.0 needs Go 1.27+, so install one with `go install golang.org/dl/go1.27.1@latest && go1.27.1 download`; see [RELEASE.md](RELEASE.md).
-
-For a **published, tagged release** — cross-platform archives (`.tar.gz` for Linux, `.zip` for macOS), checksums, and the GitHub release — GoReleaser remains the tool (`make snapshot-obf` to dry-run it locally). See [RELEASE.md](RELEASE.md). `scripts/build.sh` is for producing binaries; GoReleaser is for packaging and publishing them.
-
-Deeper detail — the package map, the agent's JSON contract, the worktree strategy, and the emulator semaphore — is in **[docs/architecture.md](docs/architecture.md)**. Release process is in [RELEASE.md](RELEASE.md).
-
-## Why I built it
-
-My company measures productivity by PRs merged. I ran Claude Code agents in parallel with git worktrees to keep up, and ended up supervising every one of them: terminals, branches, plan mode, the emulator, PR descriptions. Apple Pie automates that toil.
+- [docs/workflows.md](docs/workflows.md) — each workflow step by step, every gate, the lifecycle states, and review-comment handling in depth
+- [docs/cli.md](docs/cli.md) — every command and `pie run` flag
+- [docs/configuration.md](docs/configuration.md) — the full config reference
+- [docs/permissions.md](docs/permissions.md) — the command allowlist, rule syntax, and approvals
+- [docs/jira.md](docs/jira.md) — connecting Jira
+- [docs/architecture.md](docs/architecture.md) — packages, the agent contract, worktrees, the emulator semaphore
+- [RELEASE.md](RELEASE.md) — building release binaries and cutting a release
 
 ## Uninstall
 
