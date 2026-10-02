@@ -17,16 +17,17 @@ Apple Pie use your current Claude Code subscription to run the workflows Android
 
 From the apple pie dashboard you:
 
-**From ticket to PR:** Give Apple Pie a ticket, review and iterate on the plan, then approve it to implement, verify, and open a PR following your branch and workflow conventions.
-**Handle review comments** Review and resolve GitHub comments without leaving Apple Pie. See each comment alongside its diff, choose which ones to address, and approve the fixes and replies before they're posted.
-**Review the diff** Review every changed file before anything is committed. Ask for changes directly in chat, right next to the code you're reviewing.
-**Take over when you want to** Open any worktree in Android Studio or jump directly into the agent's Claude Code session whenever you want to take control.
-**Choose the right model for each stage** Configure different models for planning, implementation, verification, self-review, and review-comment fixes, without manually switching between them.
-**Stacked PRs and branch conventions** Choose the base branch when starting a feature, and let Apple Pie automatically follow your team's predefined branch naming and PR conventions.
+- **From ticket to PR:** Give Apple Pie a ticket, review and iterate on the plan, then approve it to implement, verify, and open a PR following your branch and workflow conventions.
+- **Handle review comments** Review and resolve GitHub comments without leaving Apple Pie. See each comment alongside its diff, choose which ones to address, and approve the fixes and replies before they're posted.
+- **Review the diff** Review every changed file before anything is committed. Ask for changes directly in chat, right next to the code you're reviewing.
+- **Take over when you want to** Open any worktree in Android Studio or jump directly into the agent's Claude Code session whenever you want to take control.
+- **Choose the right model for each stage** Configure different models for planning, implementation, verification, self-review, and review-comment fixes, without manually switching between them.
+
+The agent are in different stages in the dashboard: 
 
 - **NEEDS YOU** — a plan to approve, questions to answer, a change to review, comment fixes to preview, a run that got stuck.
 - **RUNNING** — agents planning, implementing, or verifying.
-- **PR READY FOR REVIEW** — open pull requests, flagged when reviewers leave comments.
+- **PR READY FOR REVIEW** — open pull requests, moved to NEEDS YOU when the PR has open comments. 
 
 Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. 
 
