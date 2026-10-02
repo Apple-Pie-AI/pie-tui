@@ -10,22 +10,15 @@
 
 Give Apple Pie a handful of Android tickets. It creates an isolated git worktree for each one, has Claude Code plan and implement the change, runs your real Gradle build and tests (on an emulator when the change needs one), and brings anything that needs you back to one dashboard. Your own checkout is never touched.
 
-Apple Pie is for Android developers who already use Claude Code and have started running more than one session at a time.
+Apple Pie is for Android developers who already use Claude Code and want the whole ticket-to-PR cycle handled, not just the coding.
 
 https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
 
 ## Agents run. You supervise.
 
-If you work tickets with coding agents today, it probably looks like this:
+Running several agents at once is the easy part. What still falls on you is the cycle around each one: turning the ticket into a plan you trust, making sure the build and tests really passed, taking turns on one emulator, opening the PR, and coming back when reviewers comment. Apple Pie runs that cycle for every ticket and stops only at the decisions that need a developer.
 
-```
-terminal 1 → claude → ticket A, on some branch
-terminal 2 → claude → ticket B, on another branch
-terminal 3 → claude → ticket C, waiting on you since lunch
-terminal 4 → claude → fixing review comments on last week's PR
-```
-
-That's how Apple Pie started. My company measures productivity by PRs merged, so I ran Claude Code agents in parallel across git worktrees to keep up, and ended up supervising every one of them: terminals, branches, plan mode, the emulator, PR descriptions. Apple Pie automates that toil and keeps the supervision in one place. Run `pie`:
+That's how it started. My company measures productivity by PRs merged, so I ran Claude Code agents in parallel across git worktrees to keep up, and ended up doing that cycle by hand for every one of them: branches, plan mode, the emulator, PR descriptions, review comments. Run `pie`:
 
 ```
   A P P L E   P I E   dashboard                       ○ daemon stopped · 12:01
