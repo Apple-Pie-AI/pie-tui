@@ -2,23 +2,27 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><strong>One dashboard for all your Android coding agents.</strong><br><em>Apple Pie turns Android tickets into reviewed pull requests, running each agent in its own git worktree and bringing you in only when your judgment is needed.</em></p>
+<p align="center"><strong>A harness for Android development.</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-Give Apple Pie a handful of Android tickets. It creates an isolated git worktree for each one, has Claude Code plan and implement the change, runs your real Gradle build and tests (on an emulator when the change needs one), and brings anything that needs you back to one dashboard. Your own checkout is never touched.
-
-Apple Pie is for Android developers who already use Claude Code and want the whole ticket-to-PR cycle handled, not just the coding.
+Apple Pie runs the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
 
 https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
 
-## Agents run. You supervise.
+## Everything in one control pane
 
-Running several agents at once is the easy part. What still falls on you is the cycle around each one: turning the ticket into a plan you trust, making sure the build and tests really passed, taking turns on one emulator, opening the PR, and coming back when reviewers comment. Apple Pie runs that cycle for every ticket and stops only at the decisions that need a developer.
+No prompting each step, no jumping between tabs. From the dashboard you:
 
-That's how it started. My company measures productivity by PRs merged, so I ran Claude Code agents in parallel across git worktrees to keep up, and ended up doing that cycle by hand for every one of them: branches, plan mode, the emulator, PR descriptions, review comments. Run `pie`:
+- **Start work** from a Jira ticket or a description you type or paste. The prompts for each stage are written for you.
+- **Approve the plan** before any code is written, or send feedback for a re-plan.
+- **Review the diff** of every changed file before anything is committed, and ask for changes in a chat right next to it.
+- **Handle review comments** without opening GitHub. Apple Pie pulls them in, shows each one next to its diff hunk, fixes the ones you pick, and posts the replies you approve.
+- **Take over when you want to.** Open any worktree in Android Studio, or the agent's own session in Claude Code.
+
+That's how it started. My company measures productivity by PRs merged, so I ran Claude Code agents in parallel across git worktrees to keep up, and became the glue between them: prompting each step, switching between terminals, GitHub, and Android Studio, copying review comments back to the agent. Run `pie`:
 
 ```
   A P P L E   P I E   dashboard                       ○ daemon stopped · 12:01
@@ -46,7 +50,7 @@ One row per worktree, grouped by what it needs from you:
 - **RUNNING** — agents planning, implementing, or verifying.
 - **PR READY FOR REVIEW** — open pull requests, flagged when reviewers leave comments.
 
-Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out. <kbd>enter</kbd> on a row opens its menu: open the worktree in Android Studio, resume the agent's session in Claude Code, stop it and clean up. **Edit models** picks the model for each stage, including the `/model` list your company curates in Claude Code.
+Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. **Edit models** picks the model for each stage, including the `/model` list your company curates in Claude Code.
 
 ## You stay in control
 
