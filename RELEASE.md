@@ -39,6 +39,25 @@ go install mvdan.cc/garble@latest          # build garble against that same SDK
 When a newer garble raises its minimum again, install the SDK version the
 error names and update this section.
 
+### The PostHog key
+
+Telemetry only works in a release built with `POSTHOG_API_KEY` set. Without
+it, the build succeeds and telemetry is silently compiled out (v0.5.1 and
+v0.6.0 shipped that way). Keep the key in the macOS Keychain, never in the
+repo, a dotfile, or your shell history; the release command below reads it
+from there. Store it once, typing the key at the prompt:
+
+```bash
+security add-generic-password -U -a "$USER" -s apple-pie-posthog-api-key \
+  -l "Apple Pie release: PostHog project API key" -w
+```
+
+It's a PostHog project key (`phc_…`): write-only, and compiled into every
+binary we ship, so it isn't a secret the way a token is. It still stays out of
+git so it can be rotated in one place. To rotate: create a new key in PostHog,
+rerun the command above with it, and update the `POSTHOG_API_KEY` repo secret
+(see CI fallback).
+
 ## Building binaries locally
 
 `make build` gives you a quick host binary. To produce distributable builds, use `scripts/build.sh`, which has two shapes:
@@ -94,10 +113,12 @@ Before running the script: merge the PR into `main` and release from a clean
 ```bash
 export PATH="$HOME/sdk/go1.27.1/bin:$HOME/go/bin:$PATH"
 go version                                 # must print go1.27.1, not your default go
-scripts/release.sh v0.2.0
+POSTHOG_API_KEY="$(security find-generic-password -a "$USER" -s apple-pie-posthog-api-key -w)" \
+  scripts/release.sh v0.2.0 2>&1 | sed -E 's/(telemetry\.APIKey=)[^ ]*/\1<redacted>/'
 ```
 
-The obfuscated build of all four targets can take over 10 minutes.
+The `sed` keeps the key out of the output: GoReleaser prints its build flags,
+key included. The obfuscated build of all four targets can take over 10 minutes.
 
 If goreleaser's upload step fails (GitHub's upload endpoint has done this -
 `upload failed ... POST https://uploads.github.com/...`, then a draft release
@@ -124,8 +145,9 @@ pie --version
 ## Release checklist
 
 1. PR merged into `main`; `go test ./...` and `make integration` green.
-2. `scripts/release.sh vX.Y.Z` from a clean `main`.
-3. `releases/latest` returns the new tag; installer gives the new version.
+2. The PostHog key is in the Keychain: `security find-generic-password -a "$USER" -s apple-pie-posthog-api-key -w | wc -c` prints a non-zero length.
+3. `scripts/release.sh vX.Y.Z` from a clean `main`, with `POSTHOG_API_KEY` set as above.
+4. `releases/latest` returns the new tag; installer gives the new version.
 
 ## Re-releasing the same tag (e.g. to fix a bad release)
 
@@ -156,7 +178,13 @@ release binaries free of readable stack traces and identifier names.
 `workflow_dispatch` only — trigger it from the Actions tab with an existing tag.
 It is **not** wired to tag pushes, because that would race the local script for
 the same release. It needs a `POSTHOG_API_KEY` repo secret (optional; absent =
-telemetry compiled out).
+telemetry compiled out). Set it from the Keychain, so the key is never typed
+or printed:
+
+```bash
+security find-generic-password -a "$USER" -s apple-pie-posthog-api-key -w | tr -d '\n' \
+  | gh secret set POSTHOG_API_KEY --repo Apple-Pie-AI/pie-tui
+```
 
 ## Homebrew tap (not yet active)
 
