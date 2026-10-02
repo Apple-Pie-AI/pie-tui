@@ -20,7 +20,19 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 	// Bare `pie` (no subcommand) opens the TUI hub. Subcommands still work.
 	Args: cobra.NoArgs,
-	RunE: func(_ *cobra.Command, _ []string) error { return tui.Run(version) },
+	RunE: func(cmd *cobra.Command, _ []string) error {
+		if demo, _ := cmd.Flags().GetBool("demo"); demo {
+			return tui.RunDemo(version)
+		}
+		return tui.Run(version)
+	},
+}
+
+func init() {
+	// Hidden: the hub on fixture tickets and a fast scripted timeline, for
+	// recording the launch video (demo/apple-pie.tape). Touches no real state.
+	rootCmd.Flags().Bool("demo", false, "open the hub on fixture tickets (for recording demos)")
+	_ = rootCmd.Flags().MarkHidden("demo")
 }
 
 // Execute runs the root command.

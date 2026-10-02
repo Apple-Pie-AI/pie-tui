@@ -177,6 +177,9 @@ func (m monitorModel) updateAnswering(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // only works for local tickets (SourcePath set). For Jira tickets the action
 // is not offered - use "Open in Claude Code" to answer in the session directly.
 func (m monitorModel) submitAnswer(key, answer string) tea.Cmd {
+	if m.demo != nil {
+		return m.demo.answered(key)
+	}
 	self, st := m.selfPath, m.store
 	return func() tea.Msg {
 		var sourcePath string

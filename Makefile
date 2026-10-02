@@ -4,7 +4,7 @@ LDFLAGS          := -s -w \
 	-X github.com/Apple-Pie-AI/pie-tui/cmd.version=$(VERSION) \
 	-X github.com/Apple-Pie-AI/pie-tui/internal/telemetry.APIKey=$(POSTHOG_API_KEY)
 
-.PHONY: build obf build-test build-prod install test vet lint snapshot snapshot-obf clean
+.PHONY: build obf build-test build-prod install test vet lint snapshot snapshot-obf demo clean
 
 build: ## build the `pie` binary
 	go build -ldflags "$(LDFLAGS)" -o pie .
@@ -35,6 +35,10 @@ snapshot: ## fast local release build, no obfuscation, no publish — requires g
 
 snapshot-obf: ## obfuscated local release build (as shipped), no publish — requires goreleaser + garble
 	goreleaser release --snapshot --clean
+
+demo: build ## render the launch demo (demo/apple-pie.gif + .mp4) from demo/apple-pie.tape — requires vhs
+	mkdir -p demo/frames
+	vhs demo/apple-pie.tape
 
 clean:
 	rm -rf pie dist

@@ -133,6 +133,10 @@ type monitorModel struct {
 	// modelChecks are the models screen's background checks, keyed by model
 	// name and kept for the session (editmodels_options.go).
 	modelChecks map[string]modelCheckState
+
+	// demo is the `pie --demo` timeline (demo.go); nil in every real session.
+	// When set, nothing the hub would launch or poll leaves this process.
+	demo *demoDriver
 }
 
 // answerState is the answer-and-resume overlay, which pre-empts whatever view is
@@ -296,7 +300,12 @@ func tick() tea.Cmd {
 // Init arms both loops: the 1Hz local store refresh, and the much slower
 // GitHub review-comment poll. They are separate on purpose - the fast one must
 // never make a network call, and the slow one is a gh subprocess per open PR.
-func (m monitorModel) Init() tea.Cmd { return tea.Batch(tick(), reviewTick()) }
+func (m monitorModel) Init() tea.Cmd {
+	if m.demo != nil {
+		return tick() // the demo's PRs are fixtures: there is no GitHub to poll
+	}
+	return tea.Batch(tick(), reviewTick())
+}
 
 func (m *monitorModel) reload() {
 	sessions, err := m.store.List()

@@ -348,6 +348,9 @@ func (m monitorModel) launchRun(tickets []pendingTicket) tea.Cmd {
 // whitespace splitting, so paths with spaces survive). Used for resume/ship/rerun
 // of an existing ticket, where args are a ticket key/path plus optional flags.
 func (m monitorModel) spawnRun(args ...string) tea.Cmd {
+	if m.demo != nil {
+		return func() tea.Msg { return runLaunchedMsg{err: fmt.Errorf("not available in the demo")} }
+	}
 	self := m.selfPath
 	full := append([]string{"run"}, args...)
 	return func() tea.Msg {
