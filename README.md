@@ -41,48 +41,7 @@ Agents keep moving until they hit a decision that actually needs a developer; th
 - **Nothing merges itself.** There is no auto-merge, no merge flag, and no code path that merges a pull request.
 - **Apple Pie's own files never reach your PRs.** Plans, reports, and logs live under `~/.pie`; the agent's scratch directory is git-excluded and scrubbed before every commit.
 
-Every gate, and the full state machine, is in [docs/workflows.md](docs/workflows.md).
-
-## How it works
-
-### 1. Ticket to pull request
-
-Start from a Jira key or a markdown file you write or paste.
-
-```mermaid
-flowchart LR
-  T["Ticket"] --> P["Plan"]
-  P --> G{"You review the plan"}
-  G -->|feedback| P
-  G -->|approve| I["Implement"]
-  I --> V["Verify: build and tests"]
-  V -->|green| C{"You review the change"}
-  C -->|feedback| I
-  C -->|approve| R["Pull request"]
-  V -->|"not green"| N["NEEDS YOU"]
-```
-
-1. **Plan.** The agent explores the codebase read-only and writes a plan. You read it, send feedback for a re-plan, or approve it. Blocking questions come to you before any code is written.
-2. **Implement.** The agent makes the change in the ticket's worktree, then adversarially reviews its own diff and fixes what that turns up.
-3. **Verify.** The agent runs your project's real build and tests — booting an emulator when the plan calls for instrumented tests — and certifies green only after seeing them pass. If it can't, the ticket goes to NEEDS YOU instead of becoming a PR.
-4. **Review the change.** You see every changed file and its diff (workflow 3). Send feedback for another round, or approve and Apple Pie commits, pushes, and opens the pull request.
-
-The plan review is opt-in per ticket (`--review-plan`, or `review_plans` in config); the change review is on by default.
-
-### 2. Review comments
-
-When reviewers comment on a PR, the row is flagged and Apple Pie fetches the threads from GitHub, bots included.
-
-1. **Triage.** Each comment opens next to the diff hunk it's anchored to. Decide which ones the agent handles and which it skips, and add your own context to any of them. A comment that's a question, or needs no change, gets an answer drafted for the reviewer instead of a code change.
-2. **Fix.** The agent fixes the comments you selected, locally only.
-3. **Preview.** For every comment you see the diff of its fix and the reply that will be posted. Edit a reply, ask the agent to change a fix, or leave a thread out of this batch.
-4. **Approve.** Apple Pie verifies the build, pushes to the same PR, posts the replies, and resolves the threads.
-
-### 3. Request changes
-
-**Review and make changes** opens every change on the branch: the PR description, the changed files, and each file's diff. Talk it through with the agent in plan mode (it answers without touching code), or switch to auto mode and tell it what to change — mention files with `@`, or pick a line in the diff to point at it. The agent reworks the change and re-verifies, and the view comes back showing what moved since your feedback. When it looks right, create the pull request, or push to it if one is already open.
-
-It works on any ticket and on any existing branch: **Checkout a branch** brings a branch into its own worktree, so you can review and rework code an agent didn't write.
+How each workflow runs, every gate, and the full state machine are in [docs/workflows.md](docs/workflows.md).
 
 ## Built for Android
 
@@ -289,7 +248,7 @@ Go 1.26.2 or newer. On an older toolchain, prefix with `GOTOOLCHAIN=auto` and Go
 
 ## Documentation
 
-- [docs/workflows.md](docs/workflows.md) — every gate, the lifecycle states, and review-comment handling in depth
+- [docs/workflows.md](docs/workflows.md) — each workflow step by step, every gate, the lifecycle states, and review-comment handling in depth
 - [docs/cli.md](docs/cli.md) — every command and `pie run` flag
 - [docs/configuration.md](docs/configuration.md) — the full config reference
 - [docs/permissions.md](docs/permissions.md) — the command allowlist, rule syntax, and approvals

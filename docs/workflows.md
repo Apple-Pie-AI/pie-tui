@@ -1,6 +1,49 @@
 # Workflows in depth
 
-The [README](../README.md) gives the short version of each workflow. This page has the detail: every gate, the lifecycle states, and how review comments are handled.
+This page walks through each workflow Apple Pie runs, every gate along the way, the lifecycle states, and how review comments are handled.
+
+## The three workflows
+
+### 1. Ticket to pull request
+
+Start from a Jira key or a markdown file you write or paste.
+
+```mermaid
+flowchart LR
+  T["Ticket"] --> P["Plan"]
+  P --> G{"You review the plan"}
+  G -->|feedback| P
+  G -->|approve| I["Implement"]
+  I --> V["Verify: build and tests"]
+  V -->|green| C{"You review the change"}
+  C -->|feedback| I
+  C -->|approve| R["Pull request"]
+  V -->|"not green"| N["NEEDS YOU"]
+```
+
+1. **Plan.** The agent explores the codebase read-only and writes a plan. You read it, send feedback for a re-plan, or approve it. Blocking questions come to you before any code is written.
+2. **Implement.** The agent makes the change in the ticket's worktree, then adversarially reviews its own diff and fixes what that turns up.
+3. **Verify.** The agent runs your project's real build and tests — booting an emulator when the plan calls for instrumented tests — and certifies green only after seeing them pass. If it can't, the ticket goes to NEEDS YOU instead of becoming a PR.
+4. **Review the change.** You see every changed file and its diff (workflow 3). Send feedback for another round, or approve and Apple Pie commits, pushes, and opens the pull request.
+
+The plan review is opt-in per ticket (`--review-plan`, or `review_plans` in config); the change review is on by default.
+
+### 2. Review comments
+
+When reviewers comment on a PR, the row is flagged and Apple Pie fetches the threads from GitHub, bots included.
+
+1. **Triage.** Each comment opens next to the diff hunk it's anchored to. Decide which ones the agent handles and which it skips, and add your own context to any of them. A comment that's a question, or needs no change, gets an answer drafted for the reviewer instead of a code change.
+2. **Fix.** The agent fixes the comments you selected, locally only.
+3. **Preview.** For every comment you see the diff of its fix and the reply that will be posted. Edit a reply, ask the agent to change a fix, or leave a thread out of this batch.
+4. **Approve.** Apple Pie verifies the build, pushes to the same PR, posts the replies, and resolves the threads.
+
+The full detail is in [When the reviewers come back](#when-the-reviewers-come-back).
+
+### 3. Request changes
+
+**Review and make changes** opens every change on the branch: the PR description, the changed files, and each file's diff. Talk it through with the agent in plan mode (it answers without touching code), or switch to auto mode and tell it what to change — mention files with `@`, or pick a line in the diff to point at it. The agent reworks the change and re-verifies, and the view comes back showing what moved since your feedback. When it looks right, create the pull request, or push to it if one is already open.
+
+It works on any ticket and on any existing branch: **Checkout a branch** brings a branch into its own worktree, so you can review and rework code an agent didn't write.
 
 ## Staying in control
 
