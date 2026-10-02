@@ -10,8 +10,9 @@
 
 Apple Pie use your current Claude Code subscription to run the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
 
-<img width="1898" height="1642" alt="apple-pie-mobile" src="https://github.com/user-attachments/assets/8c55bba6-e774-4d1f-8b27-d34b6423e788" />
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/8c55bba6-e774-4d1f-8b27-d34b6423e788" alt="apple-pie-review-mobile" width="720">
+</p>
 
 ## Everything in one control pane
 
@@ -23,13 +24,21 @@ From the apple pie dashboard you:
 - **Take over when you want to** Open any worktree in Android Studio or jump directly into the agent's Claude Code session whenever you want to take control.
 - **Choose the right model for each stage** Configure different models for planning, implementation, verification, self-review, and review-comment fixes, without manually switching between them.
 
-The agent are in different stages in the dashboard: 
+The agents are in different stages in the dashboard:
 
-- **NEEDS YOU** — a plan to approve, questions to answer, a change to review, comment fixes to preview, a run that got stuck.
-- **RUNNING** — agents planning, implementing, or verifying.
-- **PR READY FOR REVIEW** — open pull requests, moved to NEEDS YOU when the PR has open comments. 
+* **NEEDS YOU** — a plan to approve, questions to answer, changes to review, comment fixes to preview, or a run that got stuck.
+* **RUNNING** — agents planning, implementing, or verifying.
+* **PR READY FOR REVIEW** — open pull requests. Moved to **NEEDS YOU** when the Pull Request has open comments.
+* **CLOSED** — when a Pull Request is merged or closed, it appears here. The worktree is cleaned up.
+* **STOPPED** — when you decide to stop an agent from the TUI or CLI. The worktree is cleaned up.
 
 Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. 
+
+See it in action solving PR comments:
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/1e985616-3179-40a1-b797-8779d789fc35" alt="apple-pie-review-mobile" width="720">
+</p>
 
 ## You stay in control
 
