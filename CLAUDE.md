@@ -18,9 +18,10 @@ positioning, not code - keep docs and comments honest about that line.
 - `internal/tui` - the whole Bubble Tea hub, one file per screen. `tui.Run(version)` is
   its entrypoint (plus `RunDemo` below); `tui.go` holds the model and view enum, `update.go` is the single
   key router, `view.go` the render router, `styles.go` every color and style.
-  `demo.go` is the hidden `pie --demo` (`tui.RunDemo`): the real hub on fixture tickets
-  in a throwaway `PIE_HOME`, on a scripted timeline that `demo/apple-pie.tape` (VHS,
-  `make demo`) is timed against - retime one, re-check the other.
+  `demo.go` is the hidden `pie --demo[=pipeline|review]` (`tui.RunDemo`): the real hub
+  on fixture tickets in a throwaway `PIE_HOME`, one `demo_<name>.go` per scripted story.
+  `demo/steps/<name>.tape` (VHS) is timed against that timeline - retime one, re-check
+  the other; `make demo` renders desktop + mobile wrappers (`demo/*.tape`).
 - `internal/ticket` - local `.md` ticket parsing, id derivation, and the
   `~/.pie/pasted/<id>/` read/write pair. Shared by `pie run` and the TUI.
 - `internal/runner` - the per-ticket pipeline, split by stage: `runner.go` (the staged

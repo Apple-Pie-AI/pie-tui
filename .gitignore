@@ -10,9 +10,6 @@
 *.test
 *.out
 
-# Demo tape screenshots (scratch frames for tuning timing; the GIF/MP4 are kept)
-/demo/frames/
-
 # Local runtime data
 /.agent/
 

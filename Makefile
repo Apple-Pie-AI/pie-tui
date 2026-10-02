@@ -36,9 +36,8 @@ snapshot: ## fast local release build, no obfuscation, no publish — requires g
 snapshot-obf: ## obfuscated local release build (as shipped), no publish — requires goreleaser + garble
 	goreleaser release --snapshot --clean
 
-demo: build ## render the launch demo (demo/apple-pie.gif + .mp4) from demo/apple-pie.tape — requires vhs
-	mkdir -p demo/frames
-	vhs demo/apple-pie.tape
+demo: build ## render every demo (desktop + mobile, GIF + MP4) from demo/*.tape — requires vhs
+	for t in demo/*.tape; do vhs $$t || exit 1; done
 
 clean:
 	rm -rf pie dist

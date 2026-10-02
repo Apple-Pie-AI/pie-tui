@@ -113,6 +113,12 @@ func pollable(s store.Session) bool {
 // fetchComments refreshes one session's review threads. force skips the
 // freshness check.
 func (m monitorModel) fetchComments(s store.Session, force bool) tea.Cmd {
+	if m.demo != nil {
+		// The demo's threads are fixtures: there is no GitHub to ask, so the
+		// "fetch" succeeds at once with what the store already holds.
+		n := s.OpenComments
+		return func() tea.Msg { return commentsFetchedMsg{ticket: s.Ticket, n: n} }
+	}
 	if m.store == nil || !pollable(s) {
 		return nil
 	}

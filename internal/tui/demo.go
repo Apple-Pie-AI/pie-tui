@@ -1,20 +1,24 @@
 // The hidden `pie --demo` mode: the real hub, driven by fixture tickets on a
-// fast scripted timeline, for recording the launch video (demo/apple-pie.tape).
+// fast scripted timeline, for recording launch videos (demo/*.tape).
 //
 // Nothing here fakes the UI. The demo seeds a throwaway ~/.pie (via PIE_HOME)
-// with sessions, plan.json questions and log lines, then writes state changes
-// into the store exactly as `pie run` would; the hub's 1Hz reload picks them up
-// like any other run. The only seams are the ones that would reach outside:
-// the GitHub review poll is never armed, and answering a question or relaunching
-// a run feeds the timeline instead of spawning `pie run`.
+// with sessions, agent files and log lines, then writes state changes into the
+// store exactly as `pie run` would; the hub's 1Hz reload picks them up like any
+// other run. The only seams are the ones that would reach outside: the GitHub
+// review poll and fetch are never run, and answering a question or launching a
+// run feeds the scenario's timeline instead of spawning `pie run`.
+//
+// This file is the driver; each scenario (its fixtures and its timeline) is a
+// demo_<name>.go file.
 package tui
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,6 +32,33 @@ import (
 // demoRepo is the fixture repository every demo ticket claims.
 const demoRepo = "acme/shop-app"
 
+// demoScenario is one recordable story. seed writes the opening frame, play
+// starts the part of the timeline that runs on its own, and the two hooks
+// stand in for the hub's only ways of starting work: answering a question
+// (answered) and spawning `pie run <args>` (spawned). Either hook may be nil.
+type demoScenario struct {
+	seed     func(d *demoDriver) error
+	play     func(d *demoDriver)
+	answered func(d *demoDriver, ticket string)
+	spawned  func(d *demoDriver, args []string)
+}
+
+// demoScenarios is what `pie --demo=<name>` accepts.
+var demoScenarios = map[string]demoScenario{
+	"pipeline": pipelineDemo, // ticket → NEEDS YOU → PR ready (demo_pipeline.go)
+	"review":   reviewDemo,   // PR comments → agent fixes → fixes ready (demo_review.go)
+}
+
+// DemoScenarios lists the scenario names, for the flag's help and errors.
+func DemoScenarios() []string {
+	names := make([]string, 0, len(demoScenarios))
+	for n := range demoScenarios {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
+}
+
 // demoTicket is one fixture: its id, title, and the log lines each stage
 // streams while it is current.
 type demoTicket struct {
@@ -35,86 +66,30 @@ type demoTicket struct {
 	lines     map[string][]string
 }
 
-var (
-	demoCrash = demoTicket{id: "AND-207", title: "Fix crash when rotating the checkout screen"}
-	demoDark  = demoTicket{id: "AND-214", title: "Dark mode toggle in Settings", lines: map[string][]string{
-		store.StateWorking: {
-			"⚙ Read app/src/main/java/com/acme/shop/settings/SettingsScreen.kt",
-			"⚙ Read app/src/main/res/values/themes.xml",
-			"⚙ Edit SettingsScreen.kt - add a ThemeToggleRow under Appearance",
-			"⚙ Write ThemePreferences.kt - DataStore-backed theme mode",
-			"⚙ Edit MainActivity.kt - collect the theme mode before setContent",
-		},
-		store.StateBuilding: {
-			"⚙ Bash ./gradlew :app:assembleDebug",
-			"• > Task :app:compileDebugKotlin",
-			"✓ BUILD SUCCESSFUL in 41s",
-		},
-		store.StateTesting: {
-			"⚙ Bash ./gradlew :app:testDebugUnitTest",
-			"✓ ThemePreferencesTest > persists dark mode PASSED",
-			"⚙ Bash adb shell am start -n com.acme.shop/.MainActivity",
-			"✓ verified on emulator - Settings › Appearance › Dark theme toggles",
-		},
-	}}
-	demoOffline = demoTicket{id: "AND-219", title: "Offline cache for the home feed", lines: map[string][]string{
-		store.StatePlanning: {
-			"🤖 planning AND-219",
-			"⚙ Read feature/home/HomeRepository.kt",
-			"⚙ Grep \"Room\" - no local database in the app yet",
-		},
-		store.StateWorking: {
-			"🤖 implementing - Room cache, 24h TTL",
-			"⚙ Write data/cache/FeedDao.kt",
-			"⚙ Write data/cache/FeedCacheDatabase.kt",
-			"⚙ Edit HomeRepository.kt - serve cache first, refresh in background",
-		},
-		store.StateBuilding: {
-			"⚙ Bash ./gradlew :app:assembleDebug",
-			"✓ BUILD SUCCESSFUL in 38s",
-		},
-		store.StateTesting: {
-			"⚙ Bash ./gradlew :app:testDebugUnitTest",
-			"✓ HomeRepositoryTest > serves cached feed offline PASSED",
-			"✓ verified on emulator - airplane mode, feed still loads",
-		},
-	}}
-	demoSpanish = demoTicket{id: "AND-221", title: "Spanish translations for onboarding", lines: map[string][]string{
-		store.StatePlanning: {
-			"🤖 planning AND-221",
-			"⚙ Glob app/src/main/res/values*/strings.xml",
-		},
-		store.StateWorking: {
-			"⚙ Read res/values/strings.xml - 34 onboarding strings",
-			"⚙ Write res/values-es/strings.xml",
-			"⚙ Edit OnboardingScreen.kt - drop two hard-coded strings",
-			"⚙ Bash ./gradlew :app:lintDebug",
-			"• checking plurals and placeholders",
-			"⚙ Edit res/values-es/strings.xml - fix %1$d placeholder",
-		},
-	}}
-)
-
-// demoQuestions are the ones AND-219 stops on: the NEEDS YOU beat of the demo.
-var demoQuestions = []string{
-	"Should the cached feed expire after 24 hours, or stay until the next successful refresh?",
-}
-
-// demoDriver owns the fixture store and plays the timeline into it.
+// demoDriver owns the fixture store and plays a scenario's timeline into it.
 type demoDriver struct {
+	sc      demoScenario
 	st      *store.Store
 	ctx     context.Context
 	mu      sync.Mutex
 	stage   map[string]string // ticket → current state, for the log chatter
 	cursor  map[string]int    // ticket → next line of its current stage
 	tickets map[string]demoTicket
-	once    sync.Once // the answer resumes AND-219 exactly once
 	wg      sync.WaitGroup
 }
 
-// RunDemo opens the hub on fixture tickets in a throwaway ~/.pie and plays the
-// demo timeline until the user quits. The real ~/.pie is never touched.
-func RunDemo(version string) error {
+func newDemoDriver(ctx context.Context, sc demoScenario, st *store.Store) *demoDriver {
+	return &demoDriver{sc: sc, st: st, ctx: ctx, stage: map[string]string{},
+		cursor: map[string]int{}, tickets: map[string]demoTicket{}}
+}
+
+// RunDemo opens the hub on a scenario's fixture tickets in a throwaway ~/.pie
+// and plays its timeline until the user quits. The real ~/.pie is never touched.
+func RunDemo(version, scenario string) error {
+	sc, ok := demoScenarios[scenario]
+	if !ok {
+		return fmt.Errorf("unknown demo %q (have: %s)", scenario, strings.Join(DemoScenarios(), ", "))
+	}
 	home, err := os.MkdirTemp("", "pie-demo-")
 	if err != nil {
 		return err
@@ -133,13 +108,13 @@ func RunDemo(version string) error {
 	defer st.Close()
 
 	ctx, cancel := context.WithCancel(context.Background())
-	d := &demoDriver{st: st, ctx: ctx, stage: map[string]string{}, cursor: map[string]int{},
-		tickets: map[string]demoTicket{}}
-	if err := d.seed(); err != nil {
+	d := newDemoDriver(ctx, sc, st)
+	if err := sc.seed(d); err != nil {
 		cancel()
 		return err
 	}
-	d.goPlay()
+	sc.play(d)
+	d.goChatter()
 
 	// No config is written, so the hub opens straight on the dashboard with
 	// telemetry off - the consent screen is only for a configured install.
@@ -152,96 +127,54 @@ func RunDemo(version string) error {
 	return err
 }
 
-// seed writes the opening frame: one PR already up, three agents at work.
-func (d *demoDriver) seed() error {
-	for _, t := range []demoTicket{demoCrash, demoDark, demoOffline, demoSpanish} {
-		d.tickets[t.id] = t
-		if _, err := d.st.Claim(t.id, demoRepo, t.title); err != nil {
-			return err
-		}
-		wt := paths.WorktreeFor(demoRepo, t.id)
-		if err := os.MkdirAll(filepath.Join(wt, ".agent"), 0o755); err != nil {
-			return err
-		}
-		// A .git entry is what paths.WorktreeReady looks for; without one the
-		// detail pane reports every fixture's worktree as removed.
-		if err := os.WriteFile(filepath.Join(wt, ".git"), []byte("gitdir: "+wt+".git\n"), 0o644); err != nil {
-			return err
-		}
-		// A local .md source is what makes "Answer the questions" available.
-		src := filepath.Join(paths.Pasted(), t.id+".md")
-		if err := os.WriteFile(src, []byte("# "+t.title+"\n"), 0o644); err != nil {
-			return err
-		}
-		_ = d.st.SetSourcePath(t.id, src)
-		_ = d.st.SetFields(t.id, "pie/"+t.id, wt, "")
-	}
-	d.log(demoCrash.id, "✓ PR opened - github.com/"+demoRepo+"/pull/412")
-	_ = d.st.SetFields(demoCrash.id, "pie/"+demoCrash.id, paths.WorktreeFor(demoRepo, demoCrash.id),
-		"https://github.com/"+demoRepo+"/pull/412")
-	d.set(demoCrash.id, store.StateReview)
-	d.set(demoDark.id, store.StateWorking)
-	d.set(demoOffline.id, store.StatePlanning)
-	d.set(demoSpanish.id, store.StateQueued)
-	return nil
-}
-
-// goPlay runs the fixed part of the timeline and the log chatter. AND-219's
-// second half waits on the human: see answered.
-func (d *demoDriver) goPlay() {
-	d.after(
-		step{1500 * time.Millisecond, func() { d.set(demoSpanish.id, store.StatePlanning) }},
-		step{3 * time.Second, d.askOffline},
-		step{5 * time.Second, func() { d.set(demoDark.id, store.StateBuilding) }},
-		step{6 * time.Second, func() { d.set(demoSpanish.id, store.StateWorking) }},
-		step{9 * time.Second, func() { d.set(demoDark.id, store.StateTesting) }},
-		step{16 * time.Second, func() { d.ship(demoDark.id, 415) }},
-	)
-	d.wg.Add(1)
-	go func() {
-		defer d.wg.Done()
-		t := time.NewTicker(700 * time.Millisecond)
-		defer t.Stop()
-		for {
-			select {
-			case <-d.ctx.Done():
-				return
-			case <-t.C:
-				d.chatter()
-			}
-		}
-	}()
-}
-
-// askOffline parks AND-219 on its question, the way the plan stage does.
-func (d *demoDriver) askOffline() {
-	wt := paths.WorktreeFor(demoRepo, demoOffline.id)
-	b, _ := json.Marshal(map[string]any{"questions": demoQuestions})
-	_ = os.WriteFile(filepath.Join(wt, ".agent", "plan.json"), b, 0o644)
-	d.log(demoOffline.id, "🤖 plan has 1 open question - waiting for you")
-	d.set(demoOffline.id, store.StateAwaiting)
-}
-
-// answered resumes AND-219 through to its PR. It replaces submitAnswer's
-// `pie run` relaunch, and returns the same message so the hub's notice reads
-// exactly as it does for a real answer.
+// answered replaces submitAnswer's `pie run` relaunch, and returns the same
+// message so the hub's notice reads exactly as it does for a real answer.
 func (d *demoDriver) answered(ticket string) tea.Cmd {
 	return func() tea.Msg {
-		if ticket != demoOffline.id {
-			return answerDoneMsg{ticket: ticket}
+		if d.sc.answered != nil {
+			d.sc.answered(d, ticket)
 		}
-		d.once.Do(func() {
-			d.log(ticket, "✓ answer received - resuming")
-			d.after(
-				step{300 * time.Millisecond, func() { d.set(ticket, store.StatePlanning) }},
-				step{1500 * time.Millisecond, func() { d.set(ticket, store.StateWorking) }},
-				step{3500 * time.Millisecond, func() { d.set(ticket, store.StateBuilding) }},
-				step{5 * time.Second, func() { d.set(ticket, store.StateTesting) }},
-				step{7 * time.Second, func() { d.ship(ticket, 416) }},
-			)
-		})
 		return answerDoneMsg{ticket: ticket}
 	}
+}
+
+// spawned replaces spawnRun. It returns no message on purpose: the caller has
+// already set the notice that describes the run, and "launched run: <path>"
+// would overwrite it with a fixture path.
+func (d *demoDriver) spawned(args []string) tea.Cmd {
+	return func() tea.Msg {
+		if d.sc.spawned != nil {
+			d.sc.spawned(d, args)
+		}
+		return nil
+	}
+}
+
+// claim inserts a fixture ticket with a local .md source (what makes "Answer
+// the questions" available) and its worktree directory, and returns the
+// worktree. The scenario decides what makes the worktree "ready".
+func (d *demoDriver) claim(t demoTicket) (string, error) {
+	d.tickets[t.id] = t
+	if _, err := d.st.Claim(t.id, demoRepo, t.title); err != nil {
+		return "", err
+	}
+	wt := paths.WorktreeFor(demoRepo, t.id)
+	if err := os.MkdirAll(filepath.Join(wt, ".agent"), 0o755); err != nil {
+		return "", err
+	}
+	src := filepath.Join(paths.Pasted(), t.id+".md")
+	if err := os.WriteFile(src, []byte("# "+t.title+"\n"), 0o644); err != nil {
+		return "", err
+	}
+	_ = d.st.SetSourcePath(t.id, src)
+	_ = d.st.SetFields(t.id, "pie/"+t.id, wt, "")
+	return wt, nil
+}
+
+// stubGit gives a fixture worktree the .git entry paths.WorktreeReady looks
+// for; without one the detail pane reports the worktree as removed.
+func stubGit(wt string) error {
+	return os.WriteFile(filepath.Join(wt, ".git"), []byte("gitdir: "+wt+".git\n"), 0o644)
 }
 
 // step is one beat of a timeline, at an offset from when the timeline starts.
@@ -281,13 +214,34 @@ func (d *demoDriver) set(ticket, state string) {
 	d.mu.Unlock()
 }
 
+// prURL is a fixture ticket's pull request.
+func prURL(pr int) string { return fmt.Sprintf("https://github.com/%s/pull/%d", demoRepo, pr) }
+
 // ship is the orchestrator's half: commit, push, open the PR, park at review.
 func (d *demoDriver) ship(ticket string, pr int) {
-	url := fmt.Sprintf("https://github.com/%s/pull/%d", demoRepo, pr)
+	url := prURL(pr)
 	d.log(ticket, "⚙ git push -u origin pie/"+ticket)
-	d.log(ticket, "✓ PR opened - "+url[len("https://"):])
+	d.log(ticket, "✓ PR opened - "+strings.TrimPrefix(url, "https://"))
 	_ = d.st.SetFields(ticket, "pie/"+ticket, paths.WorktreeFor(demoRepo, ticket), url)
 	d.set(ticket, store.StateReview)
+}
+
+// goChatter streams log lines for every running ticket until the demo exits.
+func (d *demoDriver) goChatter() {
+	d.wg.Add(1)
+	go func() {
+		defer d.wg.Done()
+		t := time.NewTicker(700 * time.Millisecond)
+		defer t.Stop()
+		for {
+			select {
+			case <-d.ctx.Done():
+				return
+			case <-t.C:
+				d.chatter()
+			}
+		}
+	}()
 }
 
 // chatter streams the next line of every running ticket's current stage.

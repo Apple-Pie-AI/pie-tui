@@ -3,6 +3,7 @@ package cmd
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -21,8 +22,8 @@ var rootCmd = &cobra.Command{
 	// Bare `pie` (no subcommand) opens the TUI hub. Subcommands still work.
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, _ []string) error {
-		if demo, _ := cmd.Flags().GetBool("demo"); demo {
-			return tui.RunDemo(version)
+		if demo, _ := cmd.Flags().GetString("demo"); demo != "" {
+			return tui.RunDemo(version, demo)
 		}
 		return tui.Run(version)
 	},
@@ -30,8 +31,11 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	// Hidden: the hub on fixture tickets and a fast scripted timeline, for
-	// recording the launch video (demo/apple-pie.tape). Touches no real state.
-	rootCmd.Flags().Bool("demo", false, "open the hub on fixture tickets (for recording demos)")
+	// recording the launch videos (demo/*.tape). Touches no real state.
+	// Bare --demo is the pipeline story; --demo=review is the PR-comments one.
+	rootCmd.Flags().String("demo", "", "open the hub on fixture tickets (for recording demos): "+
+		strings.Join(tui.DemoScenarios(), ", "))
+	rootCmd.Flags().Lookup("demo").NoOptDefVal = "pipeline"
 	_ = rootCmd.Flags().MarkHidden("demo")
 }
 
