@@ -8,49 +8,27 @@
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-Apple Pie runs the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
+Apple Pie use your current Claude Code subscription to run the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
 
-https://github.com/user-attachments/assets/ee551538-f3ea-42ac-88c7-402883b5f250
+<img width="1898" height="1642" alt="apple-pie-mobile" src="https://github.com/user-attachments/assets/8c55bba6-e774-4d1f-8b27-d34b6423e788" />
+
 
 ## Everything in one control pane
 
-No prompting each step, no jumping between tabs. From the dashboard you:
+From the apple pie dashboard you:
 
-- **Start work** from a Jira ticket or a description you type or paste. The prompts for each stage are written for you.
-- **Approve the plan** before any code is written, or send feedback for a re-plan.
-- **Review the diff** of every changed file before anything is committed, and ask for changes in a chat right next to it.
-- **Handle review comments** without opening GitHub. Apple Pie pulls them in, shows each one next to its diff hunk, fixes the ones you pick, and posts the replies you approve.
-- **Take over when you want to.** Open any worktree in Android Studio, or the agent's own session in Claude Code.
-
-That's how it started. My company measures productivity by PRs merged, so I ran Claude Code agents in parallel across git worktrees to keep up, and became the glue between them: prompting each step, switching between terminals, GitHub, and Android Studio, copying review comments back to the agent. Run `pie`:
-
-```
-  A P P L E   P I E   dashboard                       ○ daemon stopped · 12:01
-  5 tickets · 1 needs you · 1 running
-  ────────────────────────────────────────────────────────────────────────────
-
-    Start new ticket(s)             from Jira, or a description you type
-    Checkout a branch               check out an existing branch into a pie w…
-    Edit config                     allowlist, repo, branch
-    Edit models                     which Claude model runs each stage
-
-  N E E D S   Y O U · 1
-  ▸ PIE-14             Review pull request                                  4h
-
-  R U N N I N G · 1
-    PIE-12             Create a new text hello world                        3h
-
-  P R   R E A D Y   F O R   R E V I E W · 1
-    …-TO-MAIN-ACTIVITY Add what's up man text below hello world text        2h
-```
-
-One row per worktree, grouped by what it needs from you:
+**From ticket to PR:** Give Apple Pie a ticket, review and iterate on the plan, then approve it to implement, verify, and open a PR following your branch and workflow conventions.
+**Handle review comments** Review and resolve GitHub comments without leaving Apple Pie. See each comment alongside its diff, choose which ones to address, and approve the fixes and replies before they're posted.
+**Review the diff** Review every changed file before anything is committed. Ask for changes directly in chat, right next to the code you're reviewing.
+**Take over when you want to** Open any worktree in Android Studio or jump directly into the agent's Claude Code session whenever you want to take control.
+**Choose the right model for each stage** Configure different models for planning, implementation, verification, self-review, and review-comment fixes, without manually switching between them.
+**Stacked PRs and branch conventions** Choose the base branch when starting a feature, and let Apple Pie automatically follow your team's predefined branch naming and PR conventions.
 
 - **NEEDS YOU** — a plan to approve, questions to answer, a change to review, comment fixes to preview, a run that got stuck.
 - **RUNNING** — agents planning, implementing, or verifying.
 - **PR READY FOR REVIEW** — open pull requests, flagged when reviewers leave comments.
 
-Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. **Edit models** picks the model for each stage, including the `/model` list your company curates in Claude Code.
+Agents keep moving until they hit a decision that actually needs a developer; then the row moves to NEEDS YOU. Everything is <kbd>↑</kbd><kbd>↓</kbd> to move, <kbd>enter</kbd> to act, <kbd>esc</kbd> to back out; <kbd>enter</kbd> on a row opens its menu. 
 
 ## You stay in control
 
@@ -114,18 +92,6 @@ General coding agents don't know what verifying an Android change means. Apple P
 - **Unit vs. instrumented tests.** Decided at plan time, enforced at verify time.
 - **Emulator coordination.** The SDK and AVD are auto-detected, and parallel agents take turns on the emulator through a shared lock, so no two agents fight over a device. The background daemon shuts it down when it's been idle.
 - **Android Studio handoff.** Open any agent's worktree in the IDE, and your hand-edits there count: the change is re-verified before it ships.
-- **Screenshot tickets.** Drag images into the terminal; the agent sees them while planning.
-
-## What ships today
-
-| Area | Shipped today | Where it's headed |
-|------|---------------|-------------------|
-| **Agent CLI** | Claude Code, driven through `claude -p` | Codex and other agentic CLIs behind the same harness |
-| **Platform** | Android and KMP on Gradle: emulator verification, Android Studio handoff | iOS and the rest of the mobile stack |
-| **Tickets** | Jira keys and local markdown files | — |
-| **Review** | GitHub pull requests and review comments via `gh` | — |
-
-The left column is real and exercised end to end. The right column is not built yet — there is no Codex adapter, and no iOS or simulator support.
 
 ## Install
 
