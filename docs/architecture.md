@@ -222,7 +222,7 @@ A lease has no expiry, because the store cannot tell a long Gradle run from a de
 
 Waiting is bounded: after 20 minutes a run stops waiting and verifies with unit tests only, rather than blocking on an AVD it may never get.
 
-The lifecycle states are listed in the [README](../README.md#staying-in-control). One note for readers of the code: `StateTesting` is declared in the enum but never written by anything. It only appears in `IsActive`'s allowlist.
+The lifecycle states are listed in [workflows.md](workflows.md#lifecycle-states). One note for readers of the code: `StateTesting` is declared in the enum but never written by anything. It only appears in `IsActive`'s allowlist.
 
 `IsActive` is what makes re-runs safe. Idle and terminal states report `false`, meaning the driving process has already exited and its recorded PID is stale — so a new run is allowed. The TUI additionally derives a *stopped* display state, without writing to the database, when a session sits in a running state but its PID is gone.
 
