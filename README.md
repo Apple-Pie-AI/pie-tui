@@ -8,7 +8,7 @@
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
-Apple Pie use your current Claude Code subscription to run the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
+Apple Pie is a lightweight TUI built in Go that uses your existing Claude Code subscription to run the workflows Android developers repeat every day, like turning a ticket into a pull request, addressing review comments, and reworking a change. Each workflow runs in its own Git worktree, so multiple workflows can run side by side without touching your main checkout. A single control panel shows what each agent is doing and pulls you in only when developer input is needed.
 
 ## Start now
 
