@@ -2,7 +2,7 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><strong>A harness for Android development.</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
+<p align="center"><strong>TUI to orchestrate coding agents focused on Android Development</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
