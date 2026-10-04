@@ -12,7 +12,7 @@ Apple Pie use your current Claude Code subscription to run the workflows Android
 
 ## Start now
 
-macOS and Linux. Windows is not supported.
+macOS and Linux. 
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Apple-Pie-AI/pie-tui/main/install.sh | bash
