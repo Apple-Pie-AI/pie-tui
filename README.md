@@ -2,13 +2,21 @@
   <img src="docs/assets/apple_pie_logo.png" alt="Apple Pie" width="160">
 </p>
 
-<p align="center"><strong>TUI to orchestrate coding agents focused on Android Development</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
+<p align="center"><strong>A harness for Android Development</strong><br><em>Run everyday Android dev workflows with coding agents, each in its own git worktree, and tracking them all from one control pane.</em></p>
 
 <p align="center"><a href="https://github.com/Apple-Pie-AI/pie-tui/releases/latest"><img src="https://img.shields.io/github/v/release/Apple-Pie-AI/pie-tui?label=release&color=success" alt="Latest release"></a> <a href="https://github.com/Apple-Pie-AI/pie-tui/releases"><img src="https://img.shields.io/github/downloads/Apple-Pie-AI/pie-tui/total" alt="Downloads"></a> <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-blue" alt="Platform: macOS and Linux"> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License: MIT"></a></p>
 
 <p align="center">New here? Start with <a href="#first-steps">First steps</a>.</p>
 
 Apple Pie use your current Claude Code subscription to run the workflows Android developers repeat every day like turning a ticket into a pull request, answering review comments and reworking a change. Every workflow runs in its own git worktree, so several can run side by side without touching your checkout. A single control pane shows what each agent is doing and pulls you in only at the moments that need a developer.
+
+## Start now
+
+macOS and Linux. Windows is not supported.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Apple-Pie-AI/pie-tui/main/install.sh | bash
+```
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/8c55bba6-e774-4d1f-8b27-d34b6423e788" alt="apple-pie-review-mobile" width="720">
