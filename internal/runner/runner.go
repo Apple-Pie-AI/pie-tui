@@ -155,7 +155,8 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	var planRes agent.Result
 	if !t.FromPlan {
 		var err error
-		planRes, err = runStage(ctx, t, "plan", agent.BuildPlanPrompt(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts, logf)
+		planRes, err = runStage(ctx, t, "plan", agent.BuildPlanPrompt(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts, logf,
+			planUnfinished(worktree))
 		if err != nil {
 			logf("[%s] (warn) plan stage exited: %v", t.Ticket, err)
 		}
@@ -257,7 +258,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	}
 	implRes, runErr := runStage(ctx, t, "implement",
 		agent.BuildImplPrompt(t.Ticket, t.Summary, desc, plan, implAllowed, projectDir),
-		implOpts, logf)
+		implOpts, logf, reportUnfinished(worktree))
 	if runErr != nil {
 		logf("[%s] (warn) implement stage exited: %v", t.Ticket, runErr)
 	}
@@ -283,6 +284,10 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		return needsYou(t, h, fmt.Sprintf("missing/invalid report.json (%v)", err),
 			"The implement stage ended without producing a completion report - the session likely crashed or timed out mid-run.")
 	}
+	if report.Status == "needs_human" && implRes.BudgetExceeded {
+		// Gave up on budget, not on the ticket (see runStage).
+		return budgetNeedsYou(t, h, "implement", implRes.ErrorText)
+	}
 	if report.Status == "needs_human" {
 		return needsYou(t, h, fmt.Sprintf("agent reported needs_human - %s", report.Summary),
 			fmt.Sprintf("The agent determined it cannot safely complete this ticket automatically:\n\n> %s", report.Summary))
@@ -301,7 +306,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		SettingsJSON: t.Cfg.SandboxSettingsJSON(),
 		Logf:         logf,
 	}
-	if _, err := runStage(ctx, t, "self-review", agent.BuildReviewPrompt(t.Ticket, t.Summary, plan), reviewOpts, logf); err != nil {
+	if _, err := runStage(ctx, t, "self-review", agent.BuildReviewPrompt(t.Ticket, t.Summary, plan), reviewOpts, logf, nil); err != nil {
 		logf("[%s] (warn) review stage exited: %v", t.Ticket, err)
 	}
 	if review, err := agent.ReadReview(worktree); err != nil {
@@ -310,7 +315,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		logf("[%s] self-review: %d issue(s) - applying one fix round", t.Ticket, len(review.Issues))
 		fixOpts := implOpts
 		fixOpts.ResumeID = sessionID
-		if fixRes, ferr := runStage(ctx, t, "fix round", agent.BuildReviewFixPrompt(review.Issues), fixOpts, logf); ferr != nil {
+		if fixRes, ferr := runStage(ctx, t, "fix round", agent.BuildReviewFixPrompt(review.Issues), fixOpts, logf, nil); ferr != nil {
 			logf("[%s] (warn) fix round exited: %v", t.Ticket, ferr)
 		} else if fixRes.SessionID != "" {
 			sessionID = fixRes.SessionID

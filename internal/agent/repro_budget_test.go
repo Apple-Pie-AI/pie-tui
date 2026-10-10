@@ -16,6 +16,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"os/exec"
 	"strings"
 	"testing"
@@ -56,5 +57,71 @@ func TestReproBudgetStopAndResume(t *testing.T) {
 	}
 	if resumed.SessionID != stop.SessionID {
 		t.Errorf("resume ran session %q, want the same session %q (context would be lost)", resumed.SessionID, stop.SessionID)
+	}
+}
+
+// The premise of budgetRule: the agent knows its budget only because the
+// harness passes --max-budget-usd (Claude Code then shows it every turn). If a
+// CLI stops exposing it, the rule is dead weight; if one starts exposing it
+// without the flag, removing the flag would no longer hide it.
+func TestReproBudgetVisibleToAgent(t *testing.T) {
+	if _, err := exec.LookPath("claude"); err != nil {
+		t.Skip("no claude on PATH")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	ask := "Do you have a spending budget for this session? Reply with only YES or NO."
+	var withFlag, without string
+	_, _ = Run(ctx, ask, Options{WorktreeDir: t.TempDir(), AllowedTools: "Read", Model: "haiku",
+		MaxBudgetUSD: 5, OnText: func(s string) { withFlag = s }})
+	_, _ = Run(ctx, ask, Options{WorktreeDir: t.TempDir(), AllowedTools: "Read", Model: "haiku",
+		OnText: func(s string) { without = s }})
+	t.Logf("with --max-budget-usd: %q · without: %q", withFlag, without)
+	if !strings.Contains(strings.ToUpper(withFlag), "YES") {
+		t.Errorf("with --max-budget-usd the agent should see a budget, said %q", withFlag)
+	}
+	if !strings.Contains(strings.ToUpper(without), "NO") {
+		t.Errorf("without the flag the agent should see no budget, said %q", without)
+	}
+}
+
+// budgetRule against a real agent on a tight budget: a multi-step task whose
+// budget runs low partway. With the rule the agent must not report
+// needs_human for budget reasons - it keeps working (finishing, or being cut
+// off by the hard stop, which the runner turns into the Continue question).
+// The run without the rule is logged for comparison only: whether an unguided
+// agent rations is model behavior, not something to assert on.
+func TestReproBudgetRuleStopsRationing(t *testing.T) {
+	if _, err := exec.LookPath("claude"); err != nil {
+		t.Skip("no claude on PATH")
+	}
+	task := "Create 25 files named f01.txt to f25.txt in the current directory, one Write call per file, " +
+		"each containing one sentence about its number. Then write .agent/report.json as " +
+		`{"status":"ready_for_build","summary":"<what you did>"} - or, if you decide not to finish, ` +
+		`{"status":"needs_human","summary":"<why>"}.`
+	run := func(prompt string) (Result, *Report) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+		dir := t.TempDir()
+		res, _ := Run(ctx, prompt, Options{WorktreeDir: dir, AllowedTools: "Write Read", Model: "haiku",
+			MaxBudgetUSD: 0.005, Logf: func(string, ...interface{}) {}})
+		rep, _ := ReadReport(dir)
+		return res, rep
+	}
+	describe := func(res Result, rep *Report) string {
+		if rep == nil {
+			return fmt.Sprintf("no report · hard stop=%v · $%.4f", res.BudgetExceeded, res.CostUSD)
+		}
+		return fmt.Sprintf("report %s %q · hard stop=%v · $%.4f", rep.Status, rep.Summary, res.BudgetExceeded, res.CostUSD)
+	}
+
+	plainRes, plainRep := run(task)
+	t.Logf("without the rule: %s", describe(plainRes, plainRep))
+
+	ruledRes, ruledRep := run(budgetRule + "\n\n" + task)
+	t.Logf("with the rule:    %s", describe(ruledRes, ruledRep))
+	if ruledRep != nil && ruledRep.Status == "needs_human" &&
+		strings.Contains(strings.ToLower(ruledRep.Summary), "budget") {
+		t.Errorf("with budgetRule the agent still gave up for budget: %q", ruledRep.Summary)
 	}
 }

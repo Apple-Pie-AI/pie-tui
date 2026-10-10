@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
@@ -363,7 +364,8 @@ func runCommentFix(ctx context.Context, t Task, worktree, base string, cmts []st
 			prompt += "\n\nAdditional instruction from the repository owner: " + fb
 		}
 	}
-	res, err := runStage(ctx, t, "comment fix", prompt, opts, logf)
+	res, err := runStage(ctx, t, "comment fix", prompt, opts, logf,
+		func(time.Time) bool { return !fixEvidence(worktree, cmts) })
 	if err != nil {
 		// Not fatal on its own: the agent may have written the files before
 		// exiting badly. The caller decides - with evidence, not hope.

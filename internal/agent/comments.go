@@ -103,7 +103,7 @@ field, updating "summary" and "filesChanged" to describe THIS round of changes:
   "tests": "<what you checked, if anything>",
   "prBody": "<preserve the existing value>"
 }`,
-		toolPermissionsBlock(allowedTools), ticketKey, summary, b.String(), base)
+		stageRules(allowedTools), ticketKey, summary, b.String(), base)
 }
 
 // BuildCommentRevisePrompt is the follow-up for a revise round: the human read

@@ -88,7 +88,7 @@ func reworkChange(ctx context.Context, t Task, h Hooks) Outcome {
 		// re-read the change it is asked to revise.
 		prompt = "Run \"git diff HEAD\" and \"git status\" first to read the local change under review.\n\n" + prompt
 	}
-	res, err := runStage(ctx, t, "rework", prompt, opts, logf)
+	res, err := runStage(ctx, t, "rework", prompt, opts, logf, nil)
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}

@@ -31,6 +31,23 @@ Never use: VAR=value prefixes ("JAVA_HOME=... ./gradlew" - a prefix rule cannot 
 If a command you genuinely need is refused, do NOT keep rephrasing it. Write it in verifyLog on its own line as "BLOCKED: <the exact command>" - the command only, never a sentence describing the problem.`, allowedTools)
 }
 
+// budgetRule tells the agent the spending limit is not its to manage. Claude
+// Code shows a session its --max-budget-usd and what is left of it on every
+// turn (verified live: with the flag the model answers "$5 total, $5
+// remaining", without it "no spending budget"), and agents ration against it:
+// a field implement session (PLEX-64819) spent its $5 reading code, cut scope
+// at "$2.6 of $5", stopped "before editing code" at $0.33 and reported
+// needs_human with no change made. The harness pauses a session that reaches
+// its limit and asks the human whether to continue it, intact - so stopping
+// early to "save budget" only ever throws the work away.
+const budgetRule = `SPENDING LIMIT - this session may show a spending budget and how much of it remains. Ignore it when deciding what to do. The orchestrator manages spend: if this session reaches its limit it is paused and the repository owner decides whether to continue it, with your context and work kept intact. Never reduce scope, skip planned work, stop early, or report needs_human because of budget - do the complete task as if no limit existed.`
+
+// stageRules is the shared harness section of every stage prompt: the tool
+// permissions, then the spending-limit rule.
+func stageRules(allowedTools string) string {
+	return toolPermissionsBlock(allowedTools) + "\n\n" + budgetRule
+}
+
 // BuildPlanPrompt is the instruction for the plan stage (read-only, strong model).
 func BuildPlanPrompt(ticketKey, summary, description, allowedTools string) string {
 	desc := strings.TrimSpace(description)
@@ -70,7 +87,7 @@ The fields besides "plan" drive the orchestrator:
   only normal unit-test verification and should set this false, even though
   it "involves Compose." Set it false for domain logic, ViewModels,
   repositories, unit tests under test/, or pure Kotlin/Java changes.`,
-		toolPermissionsBlock(allowedTools), ticketKey, summary, desc)
+		stageRules(allowedTools), ticketKey, summary, desc)
 }
 
 // BuildImplPrompt is the instruction for the implement stage, injecting the approved plan.
@@ -111,7 +128,7 @@ Rules:
   "prBody": "<repo PR template filled in, or \"\" if the repo has none>"
 }
 Use "needs_human" if you hit an unexpected blocker you cannot resolve safely.`,
-		toolPermissionsBlock(allowedTools), ticketKey, summary, desc, planBlock, implWhere(projectDir))
+		stageRules(allowedTools), ticketKey, summary, desc, planBlock, implWhere(projectDir))
 }
 
 // implWhere names the project subdirectory in the implement prompt, or nothing
@@ -153,7 +170,7 @@ Your ONLY write action is to create .agent/review.json:
 }
 Use "pass" if the change correctly implements the plan with no significant issues.
 Use "fix" with a list of specific problems that must be corrected.`,
-		ticketKey, summary, plan.Plan, toolPermissionsBlock(ReviewTools))
+		ticketKey, summary, plan.Plan, stageRules(ReviewTools))
 }
 
 // BuildReviewFixPrompt feeds self-review issues back into the implement session.
@@ -263,5 +280,5 @@ Apple Pie does NOT run the build for you - YOU discover and run it. Android/Grad
   "verifyLog": "<the commands you ran and their outcome; on failure include the failing output tail and why; refused commands as BLOCKED: lines>"
 Use that absolute path exactly - a relative .agent/ from your working directory is the wrong place.
 Setting "verified": false is a normal outcome (not an error) when you cannot get it green - it routes the ticket to a human.`,
-		ticketKey, summary, toolPermissionsBlock(allowedTools), whereBuilds, device, fixRule, reportPath)
+		ticketKey, summary, stageRules(allowedTools), whereBuilds, device, fixRule, reportPath)
 }

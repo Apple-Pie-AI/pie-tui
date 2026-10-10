@@ -135,7 +135,7 @@ func TestRunStageContinueResumesSameSession(t *testing.T) {
 	human.answer(ctx, t, st, store.ApprovalAllowed)
 
 	res, err := runStage(ctx, budgetTask(st), "plan", "ORIGINAL TASK PROMPT",
-		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet)
+		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet, nil)
 	if err != nil {
 		t.Fatalf("continued run errored: %v", err)
 	}
@@ -186,7 +186,7 @@ func TestRunStageAsksEveryRound(t *testing.T) {
 	human.answer(ctx, t, st, store.ApprovalAllowed, store.ApprovalAllowed)
 
 	res, _ := runStage(ctx, budgetTask(st), "implement", "TASK",
-		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet)
+		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet, nil)
 	if res.BudgetExceeded {
 		t.Fatal("finished after two continues; BudgetExceeded must be false")
 	}
@@ -214,7 +214,7 @@ func TestRunStageStopReturnsBudgetResult(t *testing.T) {
 	human.answer(ctx, t, st, store.ApprovalDenied)
 
 	res, _ := runStage(ctx, budgetTask(st), "verify", "TASK",
-		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet)
+		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet, nil)
 	if !res.BudgetExceeded || !isBudgetStop(res.ErrorText) {
 		t.Fatalf("Stop must return the budget stop: BudgetExceeded=%v ErrorText=%q", res.BudgetExceeded, res.ErrorText)
 	}
@@ -246,7 +246,7 @@ func TestRunStageCancelWhileAskingExpiresQuestion(t *testing.T) {
 	done := make(chan agent.Result, 1)
 	go func() {
 		res, _ := runStage(ctx, budgetTask(st), "plan", "TASK",
-			agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet)
+			agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet, nil)
 		done <- res
 	}()
 	select {
@@ -273,7 +273,7 @@ func TestRunStageWithoutStoreDoesNotWait(t *testing.T) {
 	log := installBudgetStub(t, "1")
 	task := budgetTask(nil)
 	res, _ := runStage(context.Background(), task, "plan", "TASK",
-		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet)
+		agent.Options{WorktreeDir: t.TempDir(), MaxBudgetUSD: 1.5}, quiet, nil)
 	if !res.BudgetExceeded {
 		t.Fatal("want the budget stop returned")
 	}

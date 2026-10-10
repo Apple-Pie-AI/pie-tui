@@ -14,7 +14,11 @@
 // instead of throwing the session's work away.
 package agent
 
-import "strings"
+import (
+	"os"
+	"strings"
+	"time"
+)
 
 // BudgetSubtype is the result-event subtype the CLI emits when a session
 // stops on --max-budget-usd.
@@ -53,4 +57,17 @@ func noteResultMeta(ev map[string]interface{}, res *Result) {
 		}
 	}
 	res.ErrorText = msg
+}
+
+// ContractFresh reports whether the .agent/ contract file name (plan.json,
+// report.json, ...) exists and was written at or after since - i.e. by the
+// session that just ran, not left over from an earlier one. The runner uses it
+// to tell a stage that finished from one that stopped short.
+func ContractFresh(worktreeDir, name string, since time.Time) bool {
+	p := resolveAgentFile(worktreeDir, name)
+	if p == "" {
+		return false
+	}
+	fi, err := os.Stat(p)
+	return err == nil && !fi.ModTime().Before(since)
 }

@@ -1,22 +1,35 @@
 #!/usr/bin/env bash
 # Live simulation of the budget question, end to end, with the REAL claude.
 #
-# Builds pie, creates a throwaway repo and PIE_HOME, gives the plan stage a
-# budget far too small to finish on, and runs `pie run --dry-run --review-plan`
-# (nothing is pushed, nothing is implemented - the run ends at plan review).
-# It then plays the dashboard: every budget question that appears in the
-# approvals table is answered the way the TUI's overlay writes it.
+# Builds pie, creates a throwaway repo and PIE_HOME, gives ONE stage a budget
+# far too small to finish on, and runs `pie run --dry-run` against it (nothing
+# is ever pushed). It then plays the dashboard: every budget question that
+# appears in the approvals table is answered the way the TUI's overlay writes
+# it. Both kinds of budget stop end up here - the CLI's hard stop and an agent
+# that quits unfinished near its limit.
 #
-#   scripts/simulate-budget.sh            # answer Continue until the plan is done
-#   scripts/simulate-budget.sh stop       # answer Stop on the first question
+#   scripts/simulate-budget.sh                 # plan stage, answer Continue
+#   scripts/simulate-budget.sh stop            # answer Stop on the first question
+#   STAGE=impl scripts/simulate-budget.sh      # the implement stage (PLEX-64819's)
 #   BUDGET=0.05 MODEL=sonnet scripts/simulate-budget.sh
+#
+# STAGE=plan stops at plan review (--review-plan). STAGE=impl runs on through
+# implement and verify and stops at the review-before-PR gate; the throwaway
+# repo has no build, so verify may well end at needs-you - the budget lines
+# are what this script is for.
 #
 # Costs real tokens (a few cents on haiku). Needs claude, git and sqlite3.
 set -euo pipefail
 
 MODE="${1:-continue}"
+STAGE="${STAGE:-plan}"
 BUDGET="${BUDGET:-0.02}"
 MODEL="${MODEL:-haiku}"
+case "$STAGE" in
+  plan) BUDGET_KEY=max_budget_plan_usd; MODEL_KEY=model_plan; EXTRA_FLAGS=(--review-plan) ;;
+  impl) BUDGET_KEY=max_budget_impl_usd; MODEL_KEY=model_impl; EXTRA_FLAGS=() ;;
+  *) echo "STAGE must be plan or impl" >&2; exit 1 ;;
+esac
 MAX_ROUNDS="${MAX_ROUNDS:-15}"
 
 for bin in claude git sqlite3 go; do
@@ -48,9 +61,9 @@ git -C "$WORK/app" remote add origin "$WORK/origin.git"
 git -C "$WORK/app" push -qu origin main
 
 cat > "$PIE_HOME/config.toml" <<EOF
-model_plan = "$MODEL"
+$MODEL_KEY = "$MODEL"
 max_budget_usd = 5
-max_budget_plan_usd = $BUDGET
+$BUDGET_KEY = $BUDGET
 telemetry_enabled = false
 
 [[repo]]
@@ -67,8 +80,8 @@ EOF
 
 DB="$PIE_HOME/state.db"
 LOG="$WORK/run.out"
-echo "plan budget: \$$BUDGET on $MODEL · answering: $MODE"
-"$WORK/pie" run "$WORK/budget-demo.md" --dry-run --review-plan >"$LOG" 2>&1 &
+echo "$STAGE budget: \$$BUDGET on $MODEL · answering: $MODE"
+"$WORK/pie" run "$WORK/budget-demo.md" --dry-run ${EXTRA_FLAGS[@]+"${EXTRA_FLAGS[@]}"} >"$LOG" 2>&1 &
 PID=$!
 
 rounds=0
@@ -92,7 +105,7 @@ wait "$PID" || true
 
 echo
 echo "── budget lines from the ticket log ──"
-"$WORK/pie" logs BUDGET-DEMO 2>/dev/null | grep -E "budget|stage:plan|plan-review|needs-you|spending" || true
+"$WORK/pie" logs BUDGET-DEMO 2>/dev/null | grep -E "budget|stage:|plan-review|change-review|needs-you|spending|ended in state" || true
 echo
 echo "budget questions asked: $rounds"
 echo "final state: $(sqlite3 "$DB" "SELECT state FROM sessions WHERE ticket='BUDGET-DEMO';")"

@@ -132,7 +132,12 @@ Every stage run is one `claude -p` call with `--max-budget-usd` set to that stag
 - **Stop** parks the ticket under NEEDS YOU with a message naming the budget and the key to raise, never "the ticket is ambiguous".
 - Like permission prompts, the question never times out. Stopping the run expires it.
 
-Budgets apply per stage run, not per ticket: a ticket that plans, implements and verifies can spend up to the sum of those stages' budgets without being asked. A run started with `pie run` from a shell asks the same way, so open `pie` to answer it. Tune them in **Edit config** or with the `max_budget_*_usd` keys above. `make simulate-budget` replays the whole flow live against the real CLI (a few cents on haiku); `make repro-budget` checks the CLI behavior it depends on.
+**An agent that quits early counts too.** Claude Code shows the agent its budget and what's left of it on every turn, and agents ration against it: one implement session spent its $5 reading code, cut scope as the money ran down, and reported `needs_human` with $0.02 left and no code written. Apple Pie counters that two ways:
+
+- Every stage prompt tells the agent the limit isn't its to manage: never cut scope or stop early because of budget.
+- A stage that ends **unfinished** (plan: no fresh `plan.json`; implement and verify: no fresh report, or one saying `needs_human`; comment fixes: nothing produced) after spending **90% or more** of its budget is treated as a budget stop and asks the same question ("…stopped without finishing near its $5.00 budget…"). Continue resumes the session and tells it to finish everything it skipped. A cheap `needs_human` is left alone, because that's a real blocker.
+
+Budgets apply per stage run, not per ticket: a ticket that plans, implements and verifies can spend up to the sum of those stages' budgets without being asked. A run started with `pie run` from a shell asks the same way, so open `pie` to answer it. Tune them in **Edit config** or with the `max_budget_*_usd` keys above. `make simulate-budget` replays the whole flow live against the real CLI (a few cents on haiku; `STAGE=impl` targets the implement stage, `MODE=stop` answers Stop); `make repro-budget` checks the CLI behavior it depends on.
 
 ## Review comment write-back
 

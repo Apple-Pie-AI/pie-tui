@@ -30,8 +30,8 @@ integration: ## real-claude integration tests (costs tokens; PIE_CLAUDE_BIN pins
 repro-budget: ## real-claude check of the budget stop + fresh budget on --resume (costs ~1 cent)
 	GOTOOLCHAIN=auto go test -tags repro -run TestReproBudget -count=1 -v ./internal/agent/
 
-simulate-budget: ## live end-to-end budget question with real claude (MODE=continue|stop, BUDGET=0.003)
-	BUDGET=$(or $(BUDGET),0.003) ./scripts/simulate-budget.sh $(or $(MODE),continue)
+simulate-budget: ## live end-to-end budget question with real claude (STAGE=plan|impl, MODE=continue|stop, BUDGET=0.003)
+	STAGE=$(or $(STAGE),plan) BUDGET=$(or $(BUDGET),0.003) ./scripts/simulate-budget.sh $(or $(MODE),continue)
 
 vet: ## go vet
 	go vet ./...

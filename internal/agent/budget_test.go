@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 // budgetResultEvent is the result line claude 2.1.295 printed for a session
@@ -86,5 +89,57 @@ func TestBuildArgsBudgetAndResume(t *testing.T) {
 	}
 	if strings.Contains(strings.Join(buildArgs("p", Options{}), " "), "--max-budget-usd") {
 		t.Error("a zero budget must omit the flag (unlimited), not pass 0")
+	}
+}
+
+// Every stage that runs under a budget tells the agent the limit is not its
+// to manage - the counter to PLEX-64819's agent, which cut scope as its
+// budget ran down and quit before writing code.
+func TestStagePromptsCarryBudgetRule(t *testing.T) {
+	plan := &Plan{Plan: "do it"}
+	prompts := map[string]string{
+		"plan":        BuildPlanPrompt("T-1", "s", "d", PlanTools),
+		"implement":   BuildImplPrompt("T-1", "s", "d", plan, "Read", ""),
+		"self-review": BuildReviewPrompt("T-1", "s", plan),
+		"verify":      BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Read", "", ""),
+		"comment fix": BuildCommentFixPrompt("T-1", "s", "main", "Read", []ReviewComment{{ID: "c1", Body: "nit"}}),
+		"auto mode":   BuildImplPrompt("T-1", "s", "d", plan, "", ""),
+	}
+	for stage, p := range prompts {
+		if !strings.Contains(p, budgetRule) {
+			t.Errorf("%s prompt lacks the spending-limit rule", stage)
+		}
+	}
+	for _, want := range []string{"Never reduce scope", "needs_human because of budget", "context and work kept intact"} {
+		if !strings.Contains(budgetRule, want) {
+			t.Errorf("budgetRule lost %q", want)
+		}
+	}
+}
+
+// ContractFresh accepts only a file written since the given time: a missing
+// file or one left by an earlier session doesn't count as this stage's output.
+func TestContractFresh(t *testing.T) {
+	wt := t.TempDir()
+	start := time.Now().Truncate(time.Second)
+	if ContractFresh(wt, "report.json", start) {
+		t.Error("missing file reported fresh")
+	}
+	if err := os.MkdirAll(filepath.Join(wt, ".agent"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(wt, ".agent", "report.json")
+	if err := os.WriteFile(p, []byte("{}"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if !ContractFresh(wt, "report.json", start) {
+		t.Error("file written after start reported stale")
+	}
+	past := start.Add(-time.Hour)
+	if err := os.Chtimes(p, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if ContractFresh(wt, "report.json", start) {
+		t.Error("file from an earlier session reported fresh")
 	}
 }
