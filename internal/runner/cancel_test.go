@@ -82,7 +82,7 @@ func TestVerifyWithAgentWritesNoStateWhenCancelled(t *testing.T) {
 	var states []string
 	rep, ok, sid, denials, errText := verifyWithAgent(ctx,
 		Task{Ticket: "V-1", Summary: "x", Cfg: &config.Config{}},
-		t.TempDir(), "session-abc", false, true, "",
+		t.TempDir(), "session-abc", "", true, "",
 		func(string, ...interface{}) {},
 		func(s string, _ int) { states = append(states, s) },
 	)

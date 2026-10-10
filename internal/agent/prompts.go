@@ -54,6 +54,19 @@ func stageRules(allowedTools string) string {
 	return toolPermissionsBlock(allowedTools) + "\n\n" + budgetRule
 }
 
+// verifyDeviceRule is the verify prompt's device paragraph. The device is the
+// user's one active device, lent to this agent alone: other devices attached
+// to the machine belong to the user (a phone, another emulator) and must never
+// be touched. Uninstall-before-install is the standing fix for the commonest
+// install failures on a shared test device.
+func verifyDeviceRule(serial string) string {
+	return fmt.Sprintf("Device %[1]s is booted and reserved for you - also run the instrumented/connected tests on it. "+
+		"ANDROID_SERIAL=%[1]s is set, so Gradle's connected/install tasks and plain adb use it; when you call adb directly, always pass -s %[1]s. "+
+		"Other devices attached to this machine belong to the user: never install to, stop or wipe them. "+
+		"If an install fails because of insufficient storage, or because the app is already installed with an incompatible signature, "+
+		"uninstall the old version first (adb -s %[1]s uninstall <applicationId>) and retry.", serial)
+}
+
 // BuildPlanPrompt is the instruction for the plan stage (read-only, strong model).
 func BuildPlanPrompt(ticketKey, summary, description, allowedTools string) string {
 	desc := strings.TrimSpace(description)
@@ -244,12 +257,12 @@ Answer directly, in your own voice, as if replying to the person who asked:
 // the PROJECT dir (a monorepo subdirectory when projectDir is set), so the
 // .agent contract must be named by absolute path - a relative ".agent/" would
 // land inside the project dir where the orchestrator never looks.
-func BuildVerifyPrompt(ticketKey, summary, worktree string, emulator, allowFix bool, allowedTools, projectDir, adbPath string) string {
-	device := "No emulator/device is attached - run UNIT tests only; do NOT run instrumented/connected androidTest tasks."
-	if emulator {
-		device = "An Android emulator is booted and attached via adb - also run the instrumented/connected tests."
+func BuildVerifyPrompt(ticketKey, summary, worktree, serial string, allowFix bool, allowedTools, projectDir, adbPath string) string {
+	device := "No device is available to you - run UNIT tests only; do NOT run instrumented/connected androidTest tasks."
+	if serial != "" {
+		device = verifyDeviceRule(serial)
 		if adbPath != "" {
-			device += " adb is at " + adbPath + " (its directory is on your PATH); if a device check fails, use that absolute path rather than concluding no emulator exists."
+			device += " adb is at " + adbPath + " (its directory is on your PATH); if a device check fails, use that absolute path rather than concluding no device exists."
 		}
 	}
 	fixRule := `4. If the build or any test fails, FIX the code and re-run until everything passes. Set "verified": true ONLY after you have actually seen the build AND tests pass.

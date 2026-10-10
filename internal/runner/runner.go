@@ -10,7 +10,6 @@ import (
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
-	"github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
@@ -189,20 +188,11 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	logf("[%s] plan (%s/%s): %s", t.Ticket, plan.Type, plan.Confidence, oneLine(plan.Plan, 120))
 	archivePlan(t.Ticket, t.Summary, plan, logf)
 
-	// Start emulator in the background, concurrent with the implement stage.
-	// We do this right after reading the plan so boot time overlaps with Claude.
-	sdkPaths := emulator.ResolvePaths(t.Cfg.AndroidSDKPath)
-	avdName := ""
+	// Bring the active device up in the background, concurrent with the
+	// implement stage, so an emulator's boot overlaps with Claude.
+	var deviceUp <-chan deviceBoot
 	if plan.NeedsEmulator {
-		avdName = resolveAVD(t.Cfg.AVDName, sdkPaths, logf)
-	}
-	needsEmu := avdName != "" && t.Store != nil
-	var emulatorReady chan error
-	if needsEmu {
-		_ = t.Store.RegisterEmulator(avdName)
-		emulatorReady = make(chan error, 1)
-		go bootOrWait(ctx, avdName, sdkPaths, t.Store, logf, emulatorReady)
-		logf("[%s] emulator boot started in background (avd: %s, adb: %s)", t.Ticket, avdName, sdkPaths.ADB)
+		deviceUp = startDeviceEarly(ctx, t, logf)
 	}
 
 	// 3. CLARIFY - always post plan to Jira; stop if there are blocking questions.
@@ -329,23 +319,11 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		return out
 	}
 
-	// 6. Verify. Sync with the emulator and acquire it first (the agent runs any
-	// instrumented tests against it). Neither the boot nor the lease is allowed to
-	// block the run indefinitely: both degrade to unit tests instead.
-	if needsEmu {
-		logf("[%s] waiting for emulator…", t.Ticket)
-		if err := waitForBoot(ctx, emulatorReady); err != nil {
-			logf("[%s] (warn) emulator unavailable: %v - falling back to unit tests", t.Ticket, err)
-			needsEmu = false
-		} else if !acquireEmulator(ctx, t.Store, avdName, t.Ticket, logf) {
-			logf("[%s] (warn) emulator still busy after %s - falling back to unit tests",
-				t.Ticket, emulatorWaitTimeout)
-			needsEmu = false
-		} else {
-			defer func() { _, _ = t.Store.ReleaseEmulator(avdName, t.Ticket) }()
-			logf("[%s] emulator acquired", t.Ticket)
-		}
-	}
+	// 6. Verify. Take this ticket's turn on the device first (the agent runs
+	// any instrumented tests on it). Neither the boot nor the queue may block
+	// the run indefinitely: both degrade to unit tests instead.
+	serial, releaseDevice := claimDevice(ctx, t, deviceUp, logf)
+	defer releaseDevice()
 
 	// VERIFY - the agent discovers and runs this project's own build + tests
 	// itself (per-project Gradle setups and company build skills all work), fixes
@@ -356,8 +334,8 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}
-	logf("[%s] stage:verify - agent will discover & run build + tests (emulator=%v)", t.Ticket, needsEmu)
-	vreport, verified, sid, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, sessionID, needsEmu, true, anthropicKey, logf, setState)
+	logf("[%s] stage:verify - agent will discover & run build + tests (device=%s)", t.Ticket, orNone(serial))
+	vreport, verified, sid, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, sessionID, serial, true, anthropicKey, logf, setState)
 	if sid != "" {
 		sessionID = sid
 		saveSession(sessionID)

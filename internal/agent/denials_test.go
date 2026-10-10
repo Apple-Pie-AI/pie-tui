@@ -160,7 +160,7 @@ func TestPromptsCarryPermissionGuidance(t *testing.T) {
 	}
 	plan := BuildPlanPrompt("T-1", "s", "d", PlanTools)
 	impl := BuildImplPrompt("T-1", "s", "d", &Plan{Plan: "p"}, "Bash(./gradlew:*)", "")
-	verify := BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Bash(./gradlew:*)", "", "")
+	verify := BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Bash(./gradlew:*)", "", "")
 
 	for name, c := range map[string]struct{ prompt, marker string }{
 		"plan carries its allowlist":        {plan, PlanTools},

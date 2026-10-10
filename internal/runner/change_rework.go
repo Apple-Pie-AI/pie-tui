@@ -116,9 +116,9 @@ func reworkChange(ctx context.Context, t Task, h Hooks) Outcome {
 func reworkVerifyAndPark(ctx context.Context, t Task, h Hooks, sess *store.Session, worktree, roundTree string, implReport *agent.Report) Outcome {
 	logf, setState := h.logf(), h.setState()
 	plan, _ := agent.ReadPlan(worktree)
-	needsEmu, releaseEmu := acquireForRun(ctx, t, plan, logf)
+	serial, releaseEmu := acquireForRun(ctx, t, plan, logf)
 	defer releaseEmu()
-	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", needsEmu, true, t.AnthropicKey, logf, setState)
+	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", serial, true, t.AnthropicKey, logf, setState)
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}

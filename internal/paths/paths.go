@@ -26,7 +26,10 @@ func Reports() string   { return filepath.Join(Root(), "reports") }
 func Plans() string     { return filepath.Join(Root(), "plans") }
 func Pasted() string    { return filepath.Join(Root(), "pasted") }
 func DaemonLog() string { return filepath.Join(Root(), "daemon.log") }
-func PidFile() string   { return filepath.Join(Root(), "daemon.pid") }
+
+// EmulatorLog is where the active emulator's own output goes.
+func EmulatorLog() string { return filepath.Join(Logs(), "emulator.log") }
+func PidFile() string     { return filepath.Join(Root(), "daemon.pid") }
 
 // ValidTicketID reports whether id is safe to use as a single path element under
 // Apple Pie's home. Ticket ids arrive from CLI args and the hub's free-form

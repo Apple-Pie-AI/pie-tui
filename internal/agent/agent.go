@@ -55,7 +55,11 @@ type Options struct {
 	// the agent's shell - see withAndroidSDK. Callers pass the same root the
 	// emulator manager resolved (emulator.RootFor).
 	AndroidSDKRoot string
-	Logf           func(format string, args ...interface{})
+	// ExtraEnv is appended to the subprocess environment last, e.g.
+	// ANDROID_SERIAL=<serial> so adb and Gradle's connected/install tasks
+	// target the one device the agent was given - never the user's others.
+	ExtraEnv []string
+	Logf     func(format string, args ...interface{})
 	// Inbox, when set, opens a live channel into the session: the prompt is
 	// sent as the first stdin message (--input-format stream-json) instead of
 	// the -p argument, and the function is polled for follow-up messages
@@ -176,7 +180,7 @@ func Run(ctx context.Context, prompt string, o Options) (Result, error) {
 	// monorepo tickets (PLEX-57773). Monorepo build commands are handled by
 	// the allowlist and the prompt instead, never by moving the session.
 	cmd.Dir = o.WorktreeDir
-	cmd.Env = withAndroidSDK(agentEnv(o.Logf), o.AndroidSDKRoot, o.Logf)
+	cmd.Env = append(withAndroidSDK(agentEnv(o.Logf), o.AndroidSDKRoot, o.Logf), o.ExtraEnv...)
 	if o.AnthropicKey != "" {
 		cmd.Env = append(cmd.Env, "ANTHROPIC_API_KEY="+o.AnthropicKey)
 	}

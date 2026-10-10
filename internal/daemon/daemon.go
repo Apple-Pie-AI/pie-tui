@@ -1,6 +1,7 @@
 // Package daemon runs a periodic cleanup loop for the background agent fleet.
-// Ticket intake is done via `pie run` (Phase 1); the daemon owns cleanup
-// and emulator lifecycle only (Decisions 2, 5, 8 - JQL polling deferred).
+// Ticket intake is done via `pie run` (Phase 1); the daemon owns cleanup only
+// (Decisions 2, 5, 8 - JQL polling deferred). It never starts or stops the
+// device: emulators are windowed and the user is in control of them.
 package daemon
 
 import (
@@ -10,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
-	"github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/proc"
@@ -34,8 +34,7 @@ func Run(ctx context.Context, cfg *config.Config, once bool) error {
 
 	poll := func() {
 		cleanupResolved(st)
-		reclaimStaleLeases(st, cfg)
-		idleShutdownEmulators(st, cfg)
+		reclaimDevice(st)
 	}
 
 	poll()
@@ -50,8 +49,6 @@ func Run(ctx context.Context, cfg *config.Config, once bool) error {
 	for {
 		select {
 		case <-ctx.Done():
-			logf("shutting down")
-			shutdownEmulators(st, cfg)
 			logf("daemon stopped")
 			return nil
 		case <-ticker.C:
@@ -134,58 +131,15 @@ func reclaim(st *store.Store, s store.Session, state string, lg func(string, ...
 	}
 }
 
-// reclaimStaleLeases hands back an AVD whose holding run is gone.
-//
-// `pie run` releases its own lease on the way out, but only when it gets to run
-// its defers: a SIGKILL, a panic or a power cut leaks it. Nothing else here
-// clears a leaked one - idleShutdownEmulators below only looks at ready rows, so
-// a busy row with a dead holder was invisible to the janitor and every later
-// ticket needing that AVD queued behind it. It must run BEFORE the idle check,
-// which is what turns a reclaimed lease into a shutdown on the same poll.
-func reclaimStaleLeases(st *store.Store, cfg *config.Config) {
-	if cfg.AVDName == "" {
-		return
-	}
-	holder, ok, err := st.ReclaimStaleLease(cfg.AVDName, store.LeaseGrace, proc.Alive)
+// reclaimDevice frees the device when its holder's run is gone (a SIGKILL, a
+// panic or a power cut skips the run's deferred release) and drops dead
+// tickets from the queue, so the next live waiter gets its turn.
+func reclaimDevice(st *store.Store) {
+	holder, ok, err := st.ReclaimStaleHolder(int64(store.LeaseGrace/time.Second), proc.Alive)
 	if err == nil && ok {
-		logf("[emulator] reclaimed a stale lease from %s - its driver process is gone", holder)
+		logf("[device] reclaimed the device from %s - its run is gone", holder)
 	}
-}
-
-// idleShutdownEmulators kills any emulator idle past cfg.EmulatorIdleTimeout minutes.
-func idleShutdownEmulators(st *store.Store, cfg *config.Config) {
-	if cfg.AVDName == "" {
-		return
-	}
-	state, pid, err := st.EmulatorState(cfg.AVDName)
-	if err != nil || state != store.EmulatorReady {
-		return
-	}
-	lastUsed, err := st.EmulatorLastUsed(cfg.AVDName)
-	if err != nil {
-		return
-	}
-	idleSecs := int64(cfg.EmulatorIdleTimeout) * 60
-	if time.Now().Unix()-lastUsed < idleSecs {
-		return
-	}
-	logf("[emulator] idle timeout - shutting down %s (pid %d)", cfg.AVDName, pid)
-	emulator.Kill(pid)
-	_ = st.SetEmulatorIdle(cfg.AVDName)
-}
-
-// shutdownEmulators kills all running emulators on daemon shutdown.
-func shutdownEmulators(st *store.Store, cfg *config.Config) {
-	if cfg.AVDName == "" {
-		return
-	}
-	state, pid, err := st.EmulatorState(cfg.AVDName)
-	if err != nil || state == store.EmulatorIdle || pid == 0 {
-		return
-	}
-	logf("[emulator] daemon shutdown - killing %s (pid %d)", cfg.AVDName, pid)
-	emulator.Kill(pid)
-	_ = st.SetEmulatorIdle(cfg.AVDName)
+	st.NextWaiter(proc.Alive)
 }
 
 // logf is the daemon-level log (stdout + daemon.log).

@@ -5,27 +5,42 @@ import (
 	"testing"
 )
 
-// The verify prompt must name adb's absolute path when an emulator is up:
-// the session that motivated this ran `adb devices`, got exit 127, and
+// The verify prompt must name adb's absolute path when a device is up: the
+// session that motivated this ran `adb devices`, got exit 127, and
 // misdiagnosed a booted emulator as "no emulator in environment".
 func TestVerifyPromptNamesADB(t *testing.T) {
 	const adb = "/sdk/platform-tools/adb"
 
-	got := BuildVerifyPrompt("T-1", "sum", "/wt", true, true, "", "", adb)
+	got := BuildVerifyPrompt("T-1", "sum", "/wt", "emulator-5554", true, "", "", adb)
 	if !strings.Contains(got, adb) {
-		t.Error("emulator=true: prompt should name the adb path")
+		t.Error("with a device: prompt should name the adb path")
 	}
 
-	// No emulator: unit tests only, the adb path would be a false promise.
-	got = BuildVerifyPrompt("T-1", "sum", "/wt", false, true, "", "", adb)
+	// No device: unit tests only, the adb path would be a false promise.
+	got = BuildVerifyPrompt("T-1", "sum", "/wt", "", true, "", "", adb)
 	if strings.Contains(got, adb) {
-		t.Error("emulator=false: prompt must not mention adb")
+		t.Error("no device: prompt must not mention adb")
 	}
+	if !strings.Contains(got, "UNIT tests only") {
+		t.Error("no device: unit-tests-only wording missing")
+	}
+}
 
-	// Emulator up but no resolved path: the generic wording still stands.
-	got = BuildVerifyPrompt("T-1", "sum", "/wt", true, true, "", "", "")
-	if !strings.Contains(got, "emulator is booted") {
-		t.Error("emulator=true without a path: booted-emulator wording missing")
+// The agent is lent ONE device: the prompt names its serial, says
+// ANDROID_SERIAL is set, forbids touching the user's other devices, and
+// carries the uninstall-before-retry rule for storage/signature failures.
+func TestVerifyPromptPinsTheSerial(t *testing.T) {
+	got := BuildVerifyPrompt("T-1", "sum", "/wt", "emulator-5556", true, "", "", "")
+	for _, want := range []string{
+		"Device emulator-5556 is booted and reserved for you",
+		"ANDROID_SERIAL=emulator-5556",
+		"always pass -s emulator-5556",
+		"never install to, stop or wipe them",
+		"adb -s emulator-5556 uninstall <applicationId>",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("verify prompt missing %q", want)
+		}
 	}
 }
 
@@ -36,7 +51,7 @@ func TestVerifyPromptNamesADB(t *testing.T) {
 func TestVerifyPromptForbidsRevertingTheDeliverable(t *testing.T) {
 	const rule = "THE CHANGE UNDER VERIFICATION IS THE DELIVERABLE"
 
-	got := BuildVerifyPrompt("T-1", "sum", "/wt", false, true, "", "", "")
+	got := BuildVerifyPrompt("T-1", "sum", "/wt", "", true, "", "", "")
 	if !strings.Contains(got, rule) {
 		t.Error("allowFix=true: the never-revert rule is missing")
 	}
@@ -44,7 +59,7 @@ func TestVerifyPromptForbidsRevertingTheDeliverable(t *testing.T) {
 		t.Error("allowFix=true: the conflict escape hatch is missing")
 	}
 
-	got = BuildVerifyPrompt("T-1", "sum", "/wt", false, false, "", "", "")
+	got = BuildVerifyPrompt("T-1", "sum", "/wt", "", false, "", "", "")
 	if strings.Contains(got, rule) {
 		t.Error("allowFix=false already forbids edits - the rule does not belong there")
 	}

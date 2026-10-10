@@ -1,5 +1,6 @@
-// Package emulator boots, waits for and kills the Android emulator (AVD) used by
-// the verify stage, and locates the SDK binaries it needs.
+// Package emulator manages the one Android device pie works with: it finds the
+// SDK, lists AVDs and attached devices (by serial), and launches, waits for and
+// stops emulators - always windowed, so the user sees what agents do.
 //
 // It runs no build: the agent discovers and runs the project's own build and
 // tests and self-certifies via report.json. The package was called `build` for
@@ -7,8 +8,6 @@
 package emulator
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -111,58 +110,11 @@ func parseAVDList(out string) []string {
 	return avds
 }
 
-// AlreadyRunning reports whether any Android emulator is currently connected.
-func AlreadyRunning(p SDKPaths) bool {
-	out, err := exec.Command(p.ADB, "devices").Output()
-	if err != nil {
-		return false
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 2 && strings.HasPrefix(fields[0], "emulator-") && fields[1] == "device" {
-			return true
-		}
-	}
-	return false
-}
-
-// Start launches an AVD in the background with no window, no audio, and no
-// snapshot load. Returns the OS pid of the emulator process.
+// Start launches an AVD windowed (see StartWindowed) and returns its pid.
+// Agents and the user share this: there are no headless emulators.
 func Start(p SDKPaths, avdName string) (int, error) {
-	cmd := exec.Command(p.Emulator,
-		"-avd", avdName,
-		"-no-window",
-		"-no-audio",
-		"-no-snapshot-load",
-	)
-	cmd.Stdout = nil // suppress verbose emulator INFO logs
-	cmd.Stderr = nil
-	// The emulator gets its OWN process group. It is a shared resource that
-	// deliberately outlives the run that booted it - other tickets queue on the
-	// same AVD - so it must not inherit the booting run's group, where a later
-	// "Stop & clean up" (which signals the whole group) would take it down with
-	// the run and strand every ticket waiting for it.
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	if err := cmd.Start(); err != nil {
-		return 0, fmt.Errorf("emulator start %q: %w", avdName, err)
-	}
-	return cmd.Process.Pid, nil
-}
-
-// WaitReady polls `adb shell getprop sys.boot_completed` every 3 seconds until
-// the emulator is fully booted or ctx is cancelled/times out.
-func WaitReady(ctx context.Context, p SDKPaths) error {
-	for {
-		out, err := exec.CommandContext(ctx, p.ADB, "shell", "getprop", "sys.boot_completed").Output()
-		if err == nil && strings.TrimSpace(string(out)) == "1" {
-			return nil
-		}
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("emulator not ready: %w", ctx.Err())
-		case <-time.After(3 * time.Second):
-		}
-	}
+	pid, _, err := StartWindowed(p, avdName, StartOpts{})
+	return pid, err
 }
 
 // Kill sends SIGTERM then SIGKILL to the emulator process. Used on daemon

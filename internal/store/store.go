@@ -66,6 +66,10 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err := db.Exec(deviceSchema); err != nil {
+		db.Close()
+		return nil, err
+	}
 	// Migrate existing DBs (ignore "duplicate column" errors on re-run).
 	db.Exec(`ALTER TABLE sessions ADD COLUMN session_id TEXT NOT NULL DEFAULT ''`)
 	db.Exec(`ALTER TABLE sessions ADD COLUMN pid INTEGER NOT NULL DEFAULT 0`)
@@ -85,6 +89,7 @@ func Open(path string) (*Store, error) {
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN change_notes TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN change_transcript TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN change_live TEXT NOT NULL DEFAULT ''`)
+	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN device_wait_since INTEGER NOT NULL DEFAULT 0`)
 	return &Store{db: db}, nil
 }
 

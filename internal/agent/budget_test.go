@@ -111,7 +111,7 @@ func TestStagePromptsCarryBudgetRule(t *testing.T) {
 	}
 	without := map[string]string{
 		"self-review": BuildReviewPrompt("T-1", "s", plan),
-		"verify":      BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Read", "", ""),
+		"verify":      BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Read", "", ""),
 	}
 	for stage, p := range without {
 		if strings.Contains(p, budgetRule) {

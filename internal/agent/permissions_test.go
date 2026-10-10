@@ -140,7 +140,7 @@ func TestBuildArgsInboxUsesStdinNotDashP(t *testing.T) {
 // shapes survive the allowlist - the field failure was an agent that knew
 // neither and spiraled through unmatched variations.
 func TestPromptsNameProjectDirAndSanctionedForms(t *testing.T) {
-	verify := BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Bash(./gradlew:*) Bash(compassKMP/gradlew:*)", "compassKMP", "")
+	verify := BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Bash(./gradlew:*) Bash(compassKMP/gradlew:*)", "compassKMP", "")
 	for _, marker := range []string{
 		"compassKMP",
 		"-Dorg.gradle.java.home",
@@ -174,7 +174,7 @@ func TestPromptsNameProjectDirAndSanctionedForms(t *testing.T) {
 	}
 
 	// Root-level project: no stray subdirectory instruction.
-	rootVerify := BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Bash(./gradlew:*)", "", "")
+	rootVerify := BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Bash(./gradlew:*)", "", "")
 	if strings.Contains(rootVerify, "subdirectory of this worktree") {
 		t.Error("root project must not get a subdirectory instruction")
 	}
