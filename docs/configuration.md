@@ -86,6 +86,8 @@ allowed_tools     = "…"
 | `max_budget_review_usd` | `0` | The self-review stage. `0` = 30% of `max_budget_usd` |
 | `max_budget_verify_usd` | `0` | The verify stage. `0` = `max_budget_usd` |
 | `max_budget_comment_fix_usd` | `0` | PR review-comment fixes and their revise rounds. `0` = `max_budget_usd` |
+| `max_budget_run_usd` | `0` | Run app's one repair session, when a deterministic step fails. `0` = `max_budget_usd` |
+| `model_run` | blank | Model for Run app's repair session. Blank = `model_impl` |
 | `review_plans` | `false` | Default answer for the plan review gate. `pie run --review-plan` turns it on per ticket |
 | `review_before_pr` | `true` | Pause after a green verify so you review the change in the hub before any PR is created. From the change screen you can annotate files, revert them to base, send feedback for a rework round, or approve — approving re-verifies only if the change moved since the park, then commits, pushes, and opens the PR. `--review-change=false` (or the config set to `false`) restores the old auto-PR flow; the explicit ship verbs `--ship` and `--resume` bypass the gate deliberately |
 | `allowed_tools` | see below | The `--allowed-tools` allowlist for the implement, verify, and comment-fix stages |

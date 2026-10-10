@@ -43,6 +43,55 @@ If the device doesn't come up, or the ticket's turn doesn't come within 20 minut
 
 Destructive actions (Stop while an agent is testing, Take it back) ask first, with **Cancel** selected. You can't switch devices while an agent holds the device; take it back first. Switching away from an emulator Apple Pie launched asks whether to stop it.
 
+## Run app
+
+Choose **▶ Run app on this device** in the DEVICE actions, or **▶ Run this ticket's app** in a ticket's menu. Apple Pie then builds, installs and launches the app on the active device, the way Android Studio's Run button does.
+
+The screen has three steps; **Esc** goes back one step:
+
+1. **Code:** the main checkout (your local edits included) or any ticket that has a worktree. When you start from a ticket, this step is skipped.
+2. **Variant:** Studio's Build Variants. The last variant you used is preselected, and release variants are dimmed because they need signing. **Sync project** rescans the Gradle tasks, which also happens automatically whenever a build file changes.
+3. **Progress:** Prepare → Device → Sync → Build → Reinstall → Launch, with the log underneath.
+   - **Back** leaves the run going in the background. It's a separate `pie run-app` process, so closing the dashboard doesn't stop it either.
+   - **Stop** stops it, and **Run again** reruns it.
+
+### How it runs the app (no agent needed)
+
+Studio doesn't need an AI to run a project, and neither does Apple Pie. Each Studio step has a terminal equivalent:
+
+| Step | What runs |
+|---|---|
+| App modules and variants | `./gradlew tasks --all`. Only app modules have `install<Variant>` tasks. The result is cached until a build file changes |
+| Build | `./gradlew :<module>:assemble<Variant>`, with the same JDK and SDK the agents use, and `ANDROID_SERIAL` set |
+| applicationId and APK | `build/outputs/apk/**/output-metadata.json`, written by the Android Gradle Plugin |
+| Reinstall | `adb uninstall <appId>` first, then `adb install`. Removing the old version avoids "insufficient storage" and signature-mismatch failures, **but it clears the app's data** on the device |
+| Launch | `cmd package resolve-activity` finds the LAUNCHER activity, then `am start -W`. An app that exits within 2 seconds is reported as a crash, and its error log goes into the run log |
+
+### When a step fails: one repair, then remembered
+
+If a step fails in a way that's about **how** the app is run (the build needs a flag, the Gradle root is elsewhere, there's no launcher activity, the wrong JDK), Apple Pie asks an agent **once**. It tells the agent exactly which command failed and shows the last lines of its output.
+
+The agent can only **read** the project. It gets a narrow allowlist, and edits are denied. It answers in one of three ways:
+
+- **ok:** with corrections (a Gradle root, flags, `JAVA_HOME` / `GRADLE_OPTS`, or the build task, applicationId or launch activity for one variant). They're validated, saved, and the run retries once.
+- **source_error:** the project's own code is broken. You get the agent's explanation, and nothing is saved.
+- **blocked:** a human is needed. You get the explanation and a suggested command, and Apple Pie never runs it.
+
+If a repair session changes any project file, its answer is rejected and the files are left as they are for you to inspect.
+
+Whatever a repair teaches is saved in the **run recipe**, `~/.pie/run/<repo>-<hash>.json`, and **every later run replays it without the agent**. Delete that file to start fresh. Repairs use `model_run` and `max_budget_run_usd` (see [configuration.md](configuration.md)).
+
+Run app takes the device as **you**. If an agent is testing on it, you're asked to take it back first (Cancel is selected).
+
+From the shell: `pie run-app [--target main|TICKET] [--module :app] [--variant stagingDebug] [--sync] [--no-repair]`.
+
+`scripts/simulate-run-app.sh` (`make simulate-run-app`) replays four runs with a fake SDK and project:
+
+1. A first run with no agent call.
+2. A run with the Gradle scan cached.
+3. A run where one repair teaches a missing flag.
+4. A run that replays the learned flag with no agent.
+
 ## Choosing the device
 
 - **First run:** the active device starts out as config `avd_name`, or the first AVD `emulator -list-avds` reports. After that it's whatever you pick in the dashboard or with `pie devices use`.

@@ -4,7 +4,7 @@ LDFLAGS          := -s -w \
 	-X github.com/Apple-Pie-AI/pie-tui/cmd.version=$(VERSION) \
 	-X github.com/Apple-Pie-AI/pie-tui/internal/telemetry.APIKey=$(POSTHOG_API_KEY)
 
-.PHONY: build obf build-test build-prod install test vet lint snapshot snapshot-obf clean repro-budget simulate-budget simulate-device
+.PHONY: build obf build-test build-prod install test vet lint snapshot snapshot-obf clean repro-budget simulate-budget simulate-device simulate-run-app
 
 build: ## build the `pie` binary
 	go build -ldflags "$(LDFLAGS)" -o pie .
@@ -29,6 +29,9 @@ integration: ## real-claude integration tests (costs tokens; PIE_CLAUDE_BIN pins
 
 repro-budget: ## real-claude check of the budget stop + fresh budget on --resume (costs ~1 cent)
 	GOTOOLCHAIN=auto go test -tags repro -run TestReproBudget -count=1 -v ./internal/agent/
+
+simulate-run-app: ## replay Run app against a fake SDK + project + stub claude (no emulator, no cost)
+	./scripts/simulate-run-app.sh
 
 simulate-device: ## replay the one-device flow against a fake SDK (no emulator, no cost)
 	./scripts/simulate-device.sh
