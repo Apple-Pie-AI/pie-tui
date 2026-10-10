@@ -370,6 +370,7 @@ func parseStream(r io.Reader, logf func(string, ...interface{}), onText, onTextD
 					res.ErrorText = strings.TrimSpace(s)
 				}
 			}
+			noteResultMeta(ev, &res)
 			if arr, ok := ev["permission_denials"].([]interface{}); ok {
 				for _, it := range arr {
 					if m, ok := it.(map[string]interface{}); ok {

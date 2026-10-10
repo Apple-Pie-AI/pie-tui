@@ -36,6 +36,11 @@ type Result struct {
 	// Stderr is the tail of what the CLI wrote to its stderr - the only place
 	// a claude that failed at launch explains itself.
 	Stderr string
+	// BudgetExceeded is set when the session stopped on --max-budget-usd
+	// (see budget.go); ErrorText then carries the CLI's own budget message.
+	BudgetExceeded bool
+	// CostUSD is the session's total_cost_usd from its last result event.
+	CostUSD float64
 }
 
 // blockedPrefix is the verifyLog convention the verify prompt asks the agent to

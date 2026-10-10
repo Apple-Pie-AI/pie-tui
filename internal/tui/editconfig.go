@@ -38,7 +38,7 @@ func (m *monitorModel) openEditConfig() {
 		m.view = viewEditConfig
 		return
 	}
-	e.cfgFields = generalConfigFields(cfg)
+	e.cfgFields = append(generalConfigFields(cfg), budgetFields(cfg)...)
 	m.editConfig = e
 	m.view = viewEditConfig
 }

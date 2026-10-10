@@ -47,11 +47,11 @@ func TestActConfigOpensEditConfigScreen(t *testing.T) {
 	if hub.editConfig.cursor != 0 {
 		t.Errorf("cursor = %d, want 0 (the allowlist link leads)", hub.editConfig.cursor)
 	}
-	// 5 inline fields: repo path, branch, base, the plan-review toggle, and
-	// the review-before-PR toggle (no Jira). The five per-stage models have
-	// their own dashboard row.
-	if len(hub.editConfig.cfgFields) != 5 {
-		t.Errorf("cfgFields = %v, want 5", hub.editConfig.cfgFields)
+	// 11 inline fields: repo path, branch, base, the plan-review toggle, the
+	// review-before-PR toggle (no Jira), then the default budget and the five
+	// per-stage budgets. The five per-stage models have their own dashboard row.
+	if len(hub.editConfig.cfgFields) != 11 {
+		t.Errorf("cfgFields = %v, want 11", hub.editConfig.cfgFields)
 	}
 	for _, f := range hub.editConfig.cfgFields {
 		if strings.Contains(f.label, "Jira") {

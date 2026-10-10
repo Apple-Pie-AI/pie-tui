@@ -159,6 +159,9 @@ func needsYou(t Task, h Hooks, logLine, explanation string) Outcome {
 // the ticket or the build. Four stages end here (plan, implement, verify,
 // resume-verify).
 func apiNeedsYou(t Task, h Hooks, stage, errText string) Outcome {
+	if isBudgetStop(errText) {
+		return budgetNeedsYou(t, h, stage, errText)
+	}
 	return needsYou(t, h,
 		fmt.Sprintf("%s stage died on an API error: %s", stage, oneLine(errText, 160)),
 		fmt.Sprintf("The %s stage could not run - the Claude API rejected the request:\n\n{code}\n%s\n{code}\n\nThis is an account/API problem (budget, auth, or availability), not a problem with the ticket or the change. Fix that, then re-run the ticket.", stage, errText))

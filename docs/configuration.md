@@ -62,6 +62,13 @@ model_verify      = ""
 model_comment_fix = ""
 max_budget_usd    = 5
 review_plans      = false
+
+# optional per-stage budgets (blank/0 = max_budget_usd)
+max_budget_plan_usd        = 0
+max_budget_impl_usd        = 0
+max_budget_review_usd      = 0
+max_budget_verify_usd      = 0
+max_budget_comment_fix_usd = 0
 allowed_tools     = "…"
 ```
 
@@ -73,7 +80,12 @@ allowed_tools     = "…"
 | `model_verify` | blank | Model for the verify stage. Blank falls back to `model_impl` |
 | `model_comment_fix` | blank | Model that fixes PR review comments (and their revise rounds). Blank falls back to `model_impl` |
 | `saved_models` | `[]` | Models added with **Add a model…** on the hub's **Edit models** screen, offered in every stage's picker. Any name `--model` accepts |
-| `max_budget_usd` | `5` | Per-ticket ceiling passed to `claude --max-budget-usd`. The self-review stage gets 30% of it |
+| `max_budget_usd` | `5` | The default `claude --max-budget-usd` for one run of a stage. When a stage reaches it the ticket pauses and asks in the dashboard — see [Stage budgets](#stage-budgets) |
+| `max_budget_plan_usd` | `0` | The planning stage's own budget. `0` = `max_budget_usd` |
+| `max_budget_impl_usd` | `0` | Implementation, its self-review fix round, and change-review rework rounds. `0` = `max_budget_usd` |
+| `max_budget_review_usd` | `0` | The self-review stage. `0` = 30% of `max_budget_usd` |
+| `max_budget_verify_usd` | `0` | The verify stage. `0` = `max_budget_usd` |
+| `max_budget_comment_fix_usd` | `0` | PR review-comment fixes and their revise rounds. `0` = `max_budget_usd` |
 | `review_plans` | `false` | Default answer for the plan review gate. `pie run --review-plan` turns it on per ticket |
 | `review_before_pr` | `true` | Pause after a green verify so you review the change in the hub before any PR is created. From the change screen you can annotate files, revert them to base, send feedback for a rework round, or approve — approving re-verifies only if the change moved since the park, then commits, pushes, and opens the PR. `--review-change=false` (or the config set to `false`) restores the old auto-PR flow; the explicit ship verbs `--ship` and `--resume` bypass the gate deliberately |
 | `allowed_tools` | see below | The `--allowed-tools` allowlist for the implement, verify, and comment-fix stages |
@@ -101,6 +113,26 @@ Bash(git diff:*) Bash(git log:*) Bash(git show:*)
 Prefer `extra_allowed_tools` for additions (append-only, keeps tracking default upgrades); replace `allowed_tools` wholesale only if you know you want to stop receiving the defaults. Commands outside the list are no longer hard-refused — they pause for your approval in the dashboard (see [permissions.md](permissions.md)). The planning and self-review stages use their own narrower, non-configurable allowlists (planning is read-only apart from writing its plan; self-review can only read the diff).
 
 Caveat worth knowing: read commands like `cat` can still reach paths outside the worktree. The allowlist stops destructive and network commands, not all reads. For real filesystem confinement, turn the sandbox on.
+
+### Stage budgets
+
+Every stage run is one `claude -p` call with `--max-budget-usd` set to that stage's budget. When a session reaches it, the ticket does **not** fail. It pauses, and the question appears in the dashboard the same way a permission prompt does: a `⏸` banner (`1 budget question waiting`), the `approve? ⏸` badge on the ticket, and an overlay showing what the stage spent:
+
+```
+  PROJ-123 reached its budget
+  the agent is paused, its work kept - continuing resumes the same session
+
+    The implement stage reached its $5.00 budget ($5.02 spent so far). Continue with another $5.00?
+
+  Continue - grant the same budget again
+  Stop - park the ticket at needs-you
+```
+
+- **Continue** resumes the *same* Claude session with a fresh budget of the same size, so the agent keeps its context and work. If it runs out again, you're asked again.
+- **Stop** parks the ticket under NEEDS YOU with a message naming the budget and the key to raise, never "the ticket is ambiguous".
+- Like permission prompts, the question never times out. Stopping the run expires it.
+
+Budgets apply per stage run, not per ticket: a ticket that plans, implements and verifies can spend up to the sum of those stages' budgets without being asked. A run started with `pie run` from a shell asks the same way, so open `pie` to answer it. Tune them in **Edit config** or with the `max_budget_*_usd` keys above. `make simulate-budget` replays the whole flow live against the real CLI (a few cents on haiku); `make repro-budget` checks the CLI behavior it depends on.
 
 ## Review comment write-back
 

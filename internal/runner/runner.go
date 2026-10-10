@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
@@ -143,7 +144,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		WorktreeDir:  worktree,
 		AllowedTools: agent.PlanTools,
 		Model:        modelPlan,
-		MaxBudgetUSD: t.Cfg.MaxBudgetUSD,
+		MaxBudgetUSD: t.Cfg.BudgetFor(config.StagePlan),
 		AnthropicKey: anthropicKey,
 		SettingsJSON: t.Cfg.SandboxSettingsJSON(),
 		Logf:         logf,
@@ -154,7 +155,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	var planRes agent.Result
 	if !t.FromPlan {
 		var err error
-		planRes, err = agent.Run(ctx, agent.BuildPlanPrompt(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts)
+		planRes, err = runStage(ctx, t, "plan", agent.BuildPlanPrompt(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts, logf)
 		if err != nil {
 			logf("[%s] (warn) plan stage exited: %v", t.Ticket, err)
 		}
@@ -249,14 +250,14 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		PermissionMode:         implMode,
 		PermissionPromptConfig: approvalCallbackConfig(t, worktree, implMode, logf),
 		Model:                  modelImpl,
-		MaxBudgetUSD:           t.Cfg.MaxBudgetUSD,
+		MaxBudgetUSD:           t.Cfg.BudgetFor(config.StageImpl),
 		AnthropicKey:           anthropicKey,
 		SettingsJSON:           t.Cfg.SandboxSettingsJSON(),
 		Logf:                   logf,
 	}
-	implRes, runErr := agent.Run(ctx,
+	implRes, runErr := runStage(ctx, t, "implement",
 		agent.BuildImplPrompt(t.Ticket, t.Summary, desc, plan, implAllowed, projectDir),
-		implOpts)
+		implOpts, logf)
 	if runErr != nil {
 		logf("[%s] (warn) implement stage exited: %v", t.Ticket, runErr)
 	}
@@ -295,12 +296,12 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		WorktreeDir:  worktree,
 		AllowedTools: agent.ReviewTools,
 		Model:        modelReview,
-		MaxBudgetUSD: t.Cfg.MaxBudgetUSD * 0.3,
+		MaxBudgetUSD: t.Cfg.BudgetFor(config.StageReview),
 		AnthropicKey: anthropicKey,
 		SettingsJSON: t.Cfg.SandboxSettingsJSON(),
 		Logf:         logf,
 	}
-	if _, err := agent.Run(ctx, agent.BuildReviewPrompt(t.Ticket, t.Summary, plan), reviewOpts); err != nil {
+	if _, err := runStage(ctx, t, "self-review", agent.BuildReviewPrompt(t.Ticket, t.Summary, plan), reviewOpts, logf); err != nil {
 		logf("[%s] (warn) review stage exited: %v", t.Ticket, err)
 	}
 	if review, err := agent.ReadReview(worktree); err != nil {
@@ -309,7 +310,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		logf("[%s] self-review: %d issue(s) - applying one fix round", t.Ticket, len(review.Issues))
 		fixOpts := implOpts
 		fixOpts.ResumeID = sessionID
-		if fixRes, ferr := agent.Run(ctx, agent.BuildReviewFixPrompt(review.Issues), fixOpts); ferr != nil {
+		if fixRes, ferr := runStage(ctx, t, "fix round", agent.BuildReviewFixPrompt(review.Issues), fixOpts, logf); ferr != nil {
 			logf("[%s] (warn) fix round exited: %v", t.Ticket, ferr)
 		} else if fixRes.SessionID != "" {
 			sessionID = fixRes.SessionID

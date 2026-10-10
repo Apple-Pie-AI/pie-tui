@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
@@ -74,7 +75,7 @@ func reworkChange(ctx context.Context, t Task, h Hooks) Outcome {
 		PermissionMode:         mode,
 		PermissionPromptConfig: approvalCallbackConfig(t, worktree, mode, logf),
 		Model:                  model,
-		MaxBudgetUSD:           t.Cfg.MaxBudgetUSD,
+		MaxBudgetUSD:           t.Cfg.BudgetFor(config.StageImpl),
 		AnthropicKey:           t.AnthropicKey,
 		SettingsJSON:           t.Cfg.SandboxSettingsJSON(),
 		Logf:                   logf,
@@ -87,7 +88,7 @@ func reworkChange(ctx context.Context, t Task, h Hooks) Outcome {
 		// re-read the change it is asked to revise.
 		prompt = "Run \"git diff HEAD\" and \"git status\" first to read the local change under review.\n\n" + prompt
 	}
-	res, err := agent.Run(ctx, prompt, opts)
+	res, err := runStage(ctx, t, "rework", prompt, opts, logf)
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}

@@ -62,6 +62,26 @@ func reapGhostApprovals(st *store.Store, sessions []store.Session, pending []sto
 	return kept
 }
 
+// approvalNoun names what a set of pending approvals is asking about, for the
+// banner: commands, budget questions, or - when both are waiting - requests.
+func approvalNoun(pending []store.Approval) string {
+	budget, cmds := 0, 0
+	for _, a := range pending {
+		if a.Tool == agent.BudgetTool {
+			budget++
+		} else {
+			cmds++
+		}
+	}
+	switch {
+	case cmds == 0 && budget > 0:
+		return "budget question"
+	case budget > 0:
+		return "request"
+	}
+	return "command"
+}
+
 // approvalsFor counts pending approvals for one ticket.
 func (m *monitorModel) approvalsFor(ticket string) int {
 	n := 0
@@ -103,6 +123,13 @@ type approvalRow struct {
 // non-empty ones become rows, so a guarded or prose-shaped command never
 // shows a remember option that would silently degrade to allow-once.
 func approvalRows(a store.Approval) []approvalRow {
+	if a.Tool == agent.BudgetTool {
+		// A budget question, not a command: there is no rule to remember.
+		return []approvalRow{
+			{label: "Continue - grant the same budget again", state: store.ApprovalAllowed},
+			{label: "Stop - park the ticket at needs-you", state: store.ApprovalDenied},
+		}
+	}
 	rows := []approvalRow{{label: "Allow once", state: store.ApprovalAllowed}}
 	exact, general := agent.RememberOptions(a.Tool, a.Command)
 	if exact != "" {
@@ -171,6 +198,10 @@ func (m *monitorModel) decideApproval(a store.Approval, state string, rules []st
 		} else {
 			m.notice = "allowed once (config load failed: " + err.Error() + ")"
 		}
+	} else if a.Tool == agent.BudgetTool && state == store.ApprovalAllowed {
+		m.notice = a.Ticket + ": continuing with more budget"
+	} else if a.Tool == agent.BudgetTool {
+		m.notice = a.Ticket + ": stopped at its budget"
 	} else if state == store.ApprovalAllowed {
 		m.notice = "allowed once: " + oneLineCmd(a.Command, 60)
 	} else {
@@ -191,10 +222,18 @@ func (m monitorModel) renderApprovals(w int) string {
 	}
 	var b strings.Builder
 	b.WriteString("\n")
-	b.WriteString(headerStyle.Render(fmt.Sprintf("  %s wants to run a command", a.Ticket)) + "\n")
-	b.WriteString(dimStyle.Render("  the agent is paused on this until you decide - it will wait for you") + "\n\n")
-	for _, line := range wrapCommand(a.Tool, a.Command, w-6) {
-		b.WriteString("    " + cmdApprovalStyle.Render(line) + "\n")
+	if a.Tool == agent.BudgetTool {
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  %s reached its budget", a.Ticket)) + "\n")
+		b.WriteString(dimStyle.Render("  the agent is paused, its work kept - continuing resumes the same session") + "\n\n")
+		for _, line := range wrapWords(a.Command, w-6) {
+			b.WriteString("    " + cmdApprovalStyle.Render(line) + "\n")
+		}
+	} else {
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  %s wants to run a command", a.Ticket)) + "\n")
+		b.WriteString(dimStyle.Render("  the agent is paused on this until you decide - it will wait for you") + "\n\n")
+		for _, line := range wrapCommand(a.Tool, a.Command, w-6) {
+			b.WriteString("    " + cmdApprovalStyle.Render(line) + "\n")
+		}
 	}
 	b.WriteString("\n")
 	rowW := w - 4
