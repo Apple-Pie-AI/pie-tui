@@ -10,6 +10,9 @@ const (
 	StageCommentFix = "comment_fix"
 )
 
+// DefaultMaxBudgetUSD is max_budget_usd when the config leaves it unset.
+const DefaultMaxBudgetUSD = 5
+
 // reviewBudgetShare is the self-review stage's share of max_budget_usd when it
 // has no budget of its own - the fixed 30% it always had.
 const reviewBudgetShare = 0.3

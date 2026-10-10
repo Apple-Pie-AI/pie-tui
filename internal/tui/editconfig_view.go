@@ -31,7 +31,7 @@ func (m monitorModel) renderEditConfig(w int) string {
 	}
 	b.WriteString("\n")
 
-	for i, fld := range e.cfgFields {
+	for i, fld := range withBudgetPlaceholders(e.cfgFields) {
 		b.WriteString(renderFormFieldRow(fld, e.fieldStart()+i == e.cursor, w))
 	}
 	b.WriteString("\n")
@@ -62,7 +62,12 @@ func renderFormFieldRow(fld formField, focused bool, w int) string {
 		avail = 6
 	}
 	shown := valSty.Render(truncate(val, avail))
-	if val == "" && !focused {
+	switch {
+	case fld.value == "" && fld.placeholder != "" && focused:
+		shown += " " + dimStyle.Render(truncate(fld.placeholder, avail))
+	case fld.value == "" && fld.placeholder != "":
+		shown = dimStyle.Render(truncate(fld.placeholder, avail))
+	case val == "" && !focused:
 		shown = dimStyle.Render("(empty)")
 	}
 	return marker + labelSty.Render(fld.label+":") + " " + shown + "\n"

@@ -451,7 +451,7 @@ func (c *Config) applyDefaults() {
 		c.Concurrency = 3
 	}
 	if c.MaxBudgetUSD == 0 {
-		c.MaxBudgetUSD = 5
+		c.MaxBudgetUSD = DefaultMaxBudgetUSD
 	}
 	// Models are intentionally left empty by default: an empty value makes the
 	// agent omit `--model`, so Claude Code uses whatever default the user/org has

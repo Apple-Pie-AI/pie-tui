@@ -132,3 +132,50 @@ func TestBudgetFieldsRoundTrip(t *testing.T) {
 		t.Errorf("verify falls back to the default: got %v, want 8", got)
 	}
 }
+
+// Empty stage rows show what they resolve to - the default, or self-review's
+// 30% of it - follow the default row as it is edited, and are never saved:
+// the config keeps 0 so the stage goes on tracking the default.
+func TestBudgetFieldPlaceholdersShowEffectiveValues(t *testing.T) {
+	cfg := &config.Config{MaxBudgetUSD: 5, MaxBudgetVerifyUSD: 2.5}
+	fields := budgetFields(cfg)
+	shown := withBudgetPlaceholders(fields)
+	for key, want := range map[string]string{
+		fldBudgetPlan:   "$5 (default)",
+		fldBudgetReview: "$1.5 (30% of default)",
+	} {
+		for _, f := range shown {
+			if f.key == key && f.placeholder != want {
+				t.Errorf("%s placeholder = %q, want %q", key, f.placeholder, want)
+			}
+		}
+	}
+	row := renderFormFieldRow(shown[1], false, 120) // plan, unfocused
+	if !strings.Contains(row, "$5 (default)") || strings.Contains(row, "(empty)") {
+		t.Errorf("empty plan row should show its effective value:\n%s", row)
+	}
+	if row := renderFormFieldRow(shown[4], false, 120); !strings.Contains(row, "2.5") || strings.Contains(row, "default") {
+		t.Errorf("a set row shows its own value, not the default:\n%s", row)
+	}
+
+	// Editing the default in the form re-resolves the placeholders live.
+	for i := range fields {
+		if fields[i].key == fldBudgetDefault {
+			fields[i].value = "10"
+		}
+	}
+	for _, f := range withBudgetPlaceholders(fields) {
+		if f.key == fldBudgetImpl && f.placeholder != "$10 (default)" {
+			t.Errorf("impl placeholder after editing default = %q, want $10 (default)", f.placeholder)
+		}
+	}
+
+	// Saving never writes a placeholder.
+	applyConfigFields(cfg, withBudgetPlaceholders(fields))
+	if cfg.MaxBudgetPlanUSD != 0 || cfg.MaxBudgetReviewUSD != 0 {
+		t.Errorf("placeholders were saved: plan %v review %v", cfg.MaxBudgetPlanUSD, cfg.MaxBudgetReviewUSD)
+	}
+	if cfg.MaxBudgetUSD != 10 {
+		t.Errorf("default = %v, want 10", cfg.MaxBudgetUSD)
+	}
+}
