@@ -952,7 +952,7 @@ func TestChangeDashboardRow(t *testing.T) {
 	}
 	// Walk the cursor onto the ticket row (the fixed command rows lead).
 	found := false
-	for cur := 0; cur < len(m.rows)+len(dashCommands); cur++ {
+	for cur := 0; cur < len(m.rows)+listStart(); cur++ {
 		m.cursor = cur
 		if s := m.selected(); s != nil && s.Ticket == "C-1" {
 			found = true

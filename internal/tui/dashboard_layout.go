@@ -10,7 +10,7 @@ package tui
 // the phase word, the age, and the gap that keeps the title off the phase.
 const (
 	dashCursorW = 2
-	dashPhaseW  = 11
+	dashPhaseW  = 19 // "verifying on device" / "waiting for device" in full
 	dashAgeW    = 6
 	dashGapW    = 1
 )

@@ -20,11 +20,15 @@ import (
 
 // The command rows, in cursor order. They are part of the same ↑↓ list as the
 // tickets, which is why they are rows and not a separate bar.
-var dashCommands = []struct{ label, meta string }{
-	{"Start new ticket(s)", "from Jira, or a description you type"},
-	{"Checkout a branch", "check out an existing branch into a pie worktree"},
-	{"Edit config", "allowlist, repo, branch"},
-	{"Edit models", "which Claude model runs each stage"},
+var dashCommands = []struct {
+	label, meta string
+	act         actionID
+	quiet       bool // settings rows are quieter than the rows that start work
+}{
+	{"Start new ticket(s)", "from Jira, or a description you type", actRun, false},
+	{"Checkout a branch", "check out an existing branch into a pie worktree", actRunFromBranch, false},
+	{"Edit config", "allowlist, repo, branch, budgets", actConfig, true},
+	{"Edit models", "which Claude model runs each stage", actModels, true},
 }
 
 // renderCommandRow draws one of the commands.
@@ -46,8 +50,8 @@ func (m monitorModel) renderCommandRow(i int, cw int, cursor bool) string {
 	metaW := cw - dashCursorW - labelW
 
 	sty := stAccent
-	if i >= 2 {
-		sty = stMeta // the settings rows are quieter than the two that start work
+	if c.quiet {
+		sty = stMeta
 	}
 	if cursor {
 		sty = stFocus
@@ -99,6 +103,12 @@ func (m monitorModel) renderRow(s store.Session, cw int, selected bool) string {
 		// An agent paused on a permission question outranks the state word:
 		// it is live and waiting on a keystroke, not merely in a state.
 		psty, word := phaseStyle(s), m.phaseWord(s)
+		switch {
+		case m.device.holds(s.Ticket):
+			psty, word = stAccent, "verifying on device"
+		case m.device.waiting(s.Ticket):
+			psty, word = stAmber, "waiting for device"
+		}
 		if m.approvalsFor(s.Ticket) > 0 {
 			psty, word = stAmber, "approve? ⏸"
 		}

@@ -148,19 +148,13 @@ func (m monitorModel) renderDashboardBody(w int) string {
 		b.WriteString(m.renderCommandRow(i, cw, m.cursor == i) + "\n")
 	}
 
-	if len(m.flat) == 0 {
-		b.WriteString("\n" + stChrome.Render(truncate(
-			"no tickets yet - choose a row above and press enter to start one", cw)))
-		return indent(b.String(), margin)
-	}
-
 	// Wide terminals put the detail - and LAST OUTPUT - beside the list, not
 	// under it: stacked, ten agents starve the log to nothing, since its height
 	// was whatever the list left over. Side by side it gets the full column.
 	// The list is the protagonist: two thirds of the width, always. The detail
 	// column is a glanceable ticker, not a reading surface - the menu's "Watch
 	// the live output" is where the log gets a whole screen.
-	if cw >= 132 && m.selected() != nil && !m.answer.open {
+	if cw >= 132 && (m.selected() != nil || m.onDeviceRow()) && !m.answer.open {
 		listW := cw * 66 / 100
 		detW := cw - listW - 2
 		list, _ := m.renderTicketList(listW)
@@ -171,7 +165,7 @@ func (m monitorModel) renderDashboardBody(w int) string {
 	list, listLines := m.renderTicketList(cw)
 	b.WriteString(list)
 	b.WriteString("\n")
-	b.WriteString(m.renderDashboardDetail(cw, listLines))
+	b.WriteString(m.renderDashboardDetail(cw, listLines+m.deviceSectionLines()))
 	return indent(b.String(), margin)
 }
 
@@ -181,7 +175,12 @@ func (m monitorModel) renderDashboardBody(w int) string {
 // header line before their first ticket; collapsible headers ARE rows.
 func (m monitorModel) renderTicketList(cw int) (string, int) {
 	var b strings.Builder
-	idx := len(dashCommands) // the list continues the same cursor
+	b.WriteString(m.renderDeviceSection(cw, m.onDeviceRow()))
+	if len(m.flat) == 0 {
+		b.WriteString("\n" + stChrome.Render(truncate(
+			"no tickets yet - choose a row above and press enter to start one", cw)) + "\n")
+	}
+	idx := listStart() // the list continues the same cursor
 	listLines := 0
 	for ri, r := range m.rows {
 		g := m.groups[r.group]
@@ -245,7 +244,11 @@ func (m monitorModel) renderDashboardHeader(cw int) string {
 		daemon = fmt.Sprintf("● daemon pid %d", pid)
 	}
 	left := stBrand.Render(letterSpace("APPLE PIE")) + "   " + stMeta.Render("dashboard")
-	right := stChrome.Render(daemon + " · " + m.lastRefresh.Format("15:04"))
+	right := stChrome.Render(daemon + " · ")
+	if dev := m.deviceHeaderStatus(); dev != "" {
+		right += dev + stChrome.Render(" · ")
+	}
+	right += stChrome.Render(m.lastRefresh.Format("15:04"))
 	if lipWidth(left)+lipWidth(right)+2 > cw {
 		right = stChrome.Render(m.lastRefresh.Format("15:04"))
 	}
@@ -269,6 +272,9 @@ func (m monitorModel) renderDashboardHeader(cw int) string {
 
 // renderDashboardDetail is the selected row's reason and its log tail.
 func (m monitorModel) renderDashboardDetail(cw, listLines int) string {
+	if m.onDeviceRow() {
+		return m.renderDeviceDetail(cw)
+	}
 	sel := m.selected()
 	if sel == nil {
 		// A command or header row has no detail; say what enter does rather

@@ -1,8 +1,9 @@
-// The dashboard's cursor-row model. The three pinned command rows keep their
-// hardcoded indices 0-2; everything below them is a listRow - a ticket, or the
-// Enter-operable header of a collapsible group. This is the one place that
-// knows how cursor indices map onto sessions, so collapsing a group cannot
-// desync the arithmetic scattered around the hub.
+// The dashboard's cursor-row model. The pinned command rows come first
+// (indices 0..len(dashCommands)-1), then the one DEVICE row, then the list:
+// every listRow - a ticket, or the Enter-operable header of a collapsible
+// group. This is the one place that knows how cursor indices map onto
+// sessions, so collapsing a group cannot desync the arithmetic scattered
+// around the hub.
 package tui
 
 import "github.com/Apple-Pie-AI/pie-tui/internal/store"
@@ -49,10 +50,24 @@ func buildRows(groups []*group, expanded map[string]bool) []listRow {
 	return rows
 }
 
+// deviceRowIdx is the DEVICE row's cursor index, right after the commands.
+func deviceRowIdx() int { return len(dashCommands) }
+
+// listStart is the cursor index of the first list row.
+func listStart() int { return len(dashCommands) + 1 }
+
+// lastRowIdx is the last index the cursor may reach. Before this lived here,
+// two hand-written bounds still assumed three command rows after a fourth was
+// added, and the last ticket could not be reached with the arrow keys.
+func (m *monitorModel) lastRowIdx() int { return listStart() + len(m.rows) - 1 }
+
+// onDeviceRow reports that the cursor is on the DEVICE row.
+func (m monitorModel) onDeviceRow() bool { return m.cursor == deviceRowIdx() }
+
 // rowUnderCursor maps m.cursor onto the list row it sits on, or nil when it
-// is on a command row (0-2) or out of range.
+// is on a command row, the DEVICE row, or out of range.
 func (m *monitorModel) rowUnderCursor() *listRow {
-	i := m.cursor - len(dashCommands)
+	i := m.cursor - listStart()
 	if i < 0 || i >= len(m.rows) {
 		return nil
 	}
@@ -84,7 +99,7 @@ func (m *monitorModel) selected() *store.Session {
 func (m *monitorModel) syncCursorTo(ticket string) {
 	for i, r := range m.rows {
 		if r.kind == rowTicket && m.flat[r.flat].Ticket == ticket {
-			m.cursor = i + len(dashCommands)
+			m.cursor = i + listStart()
 			return
 		}
 	}

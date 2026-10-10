@@ -103,7 +103,7 @@ func TestToggleKeepsCursorOnHeader(t *testing.T) {
 		m.flat = append(m.flat, g.sessions...)
 	}
 	m.rows = buildRows(m.groups, m.expanded)
-	m.cursor = len(dashCommands) + 1 // A, then the CLOSED header
+	m.cursor = listStart() + 1 // A, then the CLOSED header
 
 	g := m.headerUnderCursor()
 	if g == nil || g.label != "CLOSED" {

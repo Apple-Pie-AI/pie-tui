@@ -87,6 +87,9 @@ func (m monitorModel) View() string {
 	if m.view == viewDashboard && !m.answer.open && m.confirm.ticket == "" {
 		margin, cw := layout(w)
 		left := "↑↓ move   enter menu   esc quit"
+		if m.device.capturing() {
+			left = "↑↓ choose   enter run   esc back"
+		}
 		right := ": commands"
 		if lipWidth(left)+lipWidth(right)+2 > cw {
 			right = ""

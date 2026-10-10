@@ -86,7 +86,7 @@ func TestMenusOnlyProduceRegisteredActions(t *testing.T) {
 		check(agentActions(store.Session{Ticket: "K1", State: s})) // no worktree
 		check(agentActions(store.Session{Ticket: "K2", State: s})) // with worktree
 	}
-	m := monitorModel{flat: []store.Session{{Ticket: "K2", State: store.StateNeedsYou}}, cursor: len(dashCommands)}
+	m := monitorModel{flat: []store.Session{{Ticket: "K2", State: store.StateNeedsYou}}, cursor: listStart()}
 	check(m.paletteItems())
 }
 
