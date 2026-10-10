@@ -92,22 +92,33 @@ func TestBuildArgsBudgetAndResume(t *testing.T) {
 	}
 }
 
-// Every stage that runs under a budget tells the agent the limit is not its
-// to manage - the counter to PLEX-64819's agent, which cut scope as its
-// budget ran down and quit before writing code.
+// The open-ended stages tell the agent the limit is not its to manage - the
+// counter to PLEX-64819's agent, which cut scope as its budget ran down and
+// quit before writing code. Verify and self-review must NOT carry it: there
+// it sent the verify agent exploring into approval prompts (see stageRules).
 func TestStagePromptsCarryBudgetRule(t *testing.T) {
 	plan := &Plan{Plan: "do it"}
-	prompts := map[string]string{
+	with := map[string]string{
 		"plan":        BuildPlanPrompt("T-1", "s", "d", PlanTools),
 		"implement":   BuildImplPrompt("T-1", "s", "d", plan, "Read", ""),
-		"self-review": BuildReviewPrompt("T-1", "s", plan),
-		"verify":      BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Read", "", ""),
 		"comment fix": BuildCommentFixPrompt("T-1", "s", "main", "Read", []ReviewComment{{ID: "c1", Body: "nit"}}),
 		"auto mode":   BuildImplPrompt("T-1", "s", "d", plan, "", ""),
 	}
-	for stage, p := range prompts {
+	for stage, p := range with {
 		if !strings.Contains(p, budgetRule) {
 			t.Errorf("%s prompt lacks the spending-limit rule", stage)
+		}
+	}
+	without := map[string]string{
+		"self-review": BuildReviewPrompt("T-1", "s", plan),
+		"verify":      BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Read", "", ""),
+	}
+	for stage, p := range without {
+		if strings.Contains(p, budgetRule) {
+			t.Errorf("%s prompt must not carry the spending-limit rule", stage)
+		}
+		if !strings.Contains(p, "TOOL PERMISSIONS") {
+			t.Errorf("%s prompt lost its tool permissions", stage)
 		}
 	}
 	for _, want := range []string{"Never reduce scope", "needs_human because of budget", "context and work kept intact"} {

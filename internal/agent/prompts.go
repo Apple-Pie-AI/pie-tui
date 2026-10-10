@@ -42,8 +42,14 @@ If a command you genuinely need is refused, do NOT keep rephrasing it. Write it 
 // early to "save budget" only ever throws the work away.
 const budgetRule = `SPENDING LIMIT - this session may show a spending budget and how much of it remains. Ignore it when deciding what to do. The orchestrator manages spend: if this session reaches its limit it is paused and the repository owner decides whether to continue it, with your context and work kept intact. Never reduce scope, skip planned work, stop early, or report needs_human because of budget - do the complete task as if no limit existed.`
 
-// stageRules is the shared harness section of every stage prompt: the tool
-// permissions, then the spending-limit rule.
+// stageRules is the harness section of the stages that do open-ended work -
+// plan, implement, comment fix - where agents rationed: the tool permissions,
+// then the spending-limit rule. Verify and self-review get the permissions
+// alone: they are bounded tasks, and "do the complete task as if no limit
+// existed" sent the verify agent exploring past its allowlist (git ls-tree,
+// git log --all) into approval prompts - the real-CLI monorepo verify test
+// went from passing to timing out on them in 3 of 4 runs. runStage's
+// rationing check still covers a verify that quits unfinished near its cap.
 func stageRules(allowedTools string) string {
 	return toolPermissionsBlock(allowedTools) + "\n\n" + budgetRule
 }
@@ -170,7 +176,7 @@ Your ONLY write action is to create .agent/review.json:
 }
 Use "pass" if the change correctly implements the plan with no significant issues.
 Use "fix" with a list of specific problems that must be corrected.`,
-		ticketKey, summary, plan.Plan, stageRules(ReviewTools))
+		ticketKey, summary, plan.Plan, toolPermissionsBlock(ReviewTools))
 }
 
 // BuildReviewFixPrompt feeds self-review issues back into the implement session.
@@ -280,5 +286,5 @@ Apple Pie does NOT run the build for you - YOU discover and run it. Android/Grad
   "verifyLog": "<the commands you ran and their outcome; on failure include the failing output tail and why; refused commands as BLOCKED: lines>"
 Use that absolute path exactly - a relative .agent/ from your working directory is the wrong place.
 Setting "verified": false is a normal outcome (not an error) when you cannot get it green - it routes the ticket to a human.`,
-		ticketKey, summary, stageRules(allowedTools), whereBuilds, device, fixRule, reportPath)
+		ticketKey, summary, toolPermissionsBlock(allowedTools), whereBuilds, device, fixRule, reportPath)
 }
