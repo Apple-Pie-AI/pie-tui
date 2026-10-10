@@ -163,13 +163,11 @@ emulator_idle_timeout = 30
 
 | Key | Default | |
 |---|---|---|
-| `avd_name` | blank | The AVD to boot for tickets needing instrumented tests |
+| `avd_name` | blank | The **initial** active device. After the first run, the device is whatever you pick in the dashboard's DEVICE section or with `pie devices use` |
 | `android_sdk_path` | `$ANDROID_HOME`, else `$ANDROID_SDK_ROOT` | SDK root. Falls back to the platform default location |
-| `emulator_idle_timeout` | `30` | Minutes of inactivity before the cleanup daemon shuts the emulator down |
+| `emulator_idle_timeout` | — | No longer used: the daemon never stops the device, because you're in control of it |
 
-**If `avd_name` is unset, tickets that want an emulator fall back to unit tests** rather than failing. `pie doctor` tells you which case you're in, and validates the name against `emulator -list-avds`.
-
-Only one AVD is used, shared across parallel tickets by a SQLite-backed semaphore — agents queue for it rather than racing.
+Apple Pie uses **one device at a time** (an emulator or a USB phone), and **one agent uses it at a time**, with tickets queued first come, first served. Emulators always open in a window. With no device and no AVD at all, tickets that want instrumented tests fall back to unit tests rather than failing. See [devices.md](devices.md).
 
 ## Jira
 
