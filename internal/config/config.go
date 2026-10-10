@@ -60,6 +60,7 @@ type Config struct {
 	MaxBudgetReviewUSD     float64 `toml:"max_budget_review_usd"`
 	MaxBudgetVerifyUSD     float64 `toml:"max_budget_verify_usd"`
 	MaxBudgetCommentFixUSD float64 `toml:"max_budget_comment_fix_usd"`
+	MaxBudgetRunUSD        float64 `toml:"max_budget_run_usd"`
 	ModelPlan              string  `toml:"model_plan"`
 	ModelImpl              string  `toml:"model_impl"`
 	ModelReview            string  `toml:"model_review"`
@@ -73,6 +74,8 @@ type Config struct {
 	// round, which resumes the same session) on its own model instead of
 	// ModelImpl.
 	ModelCommentFix string `toml:"model_comment_fix"`
+	// ModelRun runs Run app's repair sessions; blank = ModelImpl.
+	ModelRun string `toml:"model_run"`
 	// SavedModels are model names the user added from the models screen,
 	// offered in every stage's picker - passed to `claude --model` verbatim.
 	SavedModels         []string `toml:"saved_models"`

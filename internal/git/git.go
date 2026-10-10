@@ -508,3 +508,7 @@ func DetachHolder(holder string) error {
 	_, err := run(holder, "switch", "--detach")
 	return err
 }
+
+// ExcludeAgentDir keeps .agent/ out of dir's git status - for runs that put an
+// agent contract in a checkout pie didn't create (Run app on the main checkout).
+func ExcludeAgentDir(dir string) { excludeAgentDir(dir) }

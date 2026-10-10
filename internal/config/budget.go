@@ -8,6 +8,7 @@ const (
 	StageReview     = "review"
 	StageVerify     = "verify"
 	StageCommentFix = "comment_fix"
+	StageRun        = "run" // Run app's repair session
 )
 
 // DefaultMaxBudgetUSD is max_budget_usd when the config leaves it unset.
@@ -37,6 +38,8 @@ func (c *Config) BudgetFor(stage string) float64 {
 		own = c.MaxBudgetVerifyUSD
 	case StageCommentFix:
 		own = c.MaxBudgetCommentFixUSD
+	case StageRun:
+		own = c.MaxBudgetRunUSD
 	}
 	if own > 0 {
 		return own
@@ -45,4 +48,13 @@ func (c *Config) BudgetFor(stage string) float64 {
 		return c.MaxBudgetUSD * reviewBudgetShare
 	}
 	return c.MaxBudgetUSD
+}
+
+// EffectiveModelRun is the model Run app's repair sessions use: model_run,
+// else the implementation model.
+func (c *Config) EffectiveModelRun() string {
+	if c.ModelRun != "" {
+		return c.ModelRun
+	}
+	return c.ModelImpl
 }

@@ -127,3 +127,13 @@ func detectJavaHome() string {
 	}
 	return ""
 }
+
+// ToolEnv is the environment pie itself runs Android tooling with (Gradle,
+// adb) - the same JDK detection and SDK PATH the agents get, so a build that
+// works for an agent works for Run app.
+func ToolEnv(sdkRoot string, logf func(string, ...interface{})) []string {
+	if logf == nil {
+		logf = func(string, ...interface{}) {}
+	}
+	return withAndroidSDK(agentEnv(logf), sdkRoot, logf)
+}

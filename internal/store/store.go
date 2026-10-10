@@ -70,6 +70,10 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, err
 	}
+	if _, err := db.Exec(appRunsSchema); err != nil {
+		db.Close()
+		return nil, err
+	}
 	// Migrate existing DBs (ignore "duplicate column" errors on re-run).
 	db.Exec(`ALTER TABLE sessions ADD COLUMN session_id TEXT NOT NULL DEFAULT ''`)
 	db.Exec(`ALTER TABLE sessions ADD COLUMN pid INTEGER NOT NULL DEFAULT 0`)

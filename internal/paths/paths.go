@@ -2,6 +2,7 @@
 package paths
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -26,6 +27,25 @@ func Reports() string   { return filepath.Join(Root(), "reports") }
 func Plans() string     { return filepath.Join(Root(), "plans") }
 func Pasted() string    { return filepath.Join(Root(), "pasted") }
 func DaemonLog() string { return filepath.Join(Root(), "daemon.log") }
+
+// RunDir holds the per-repo run recipes (Run app).
+func RunDir() string { return filepath.Join(Root(), "run") }
+
+// RunRecipeFor is repo's run recipe: <base>-<hash of the absolute path>.json,
+// so two checkouts named "app" don't share one.
+func RunRecipeFor(repo string) string {
+	abs, err := filepath.Abs(repo)
+	if err != nil {
+		abs = repo
+	}
+	sum := sha256.Sum256([]byte(abs))
+	return filepath.Join(RunDir(), fmt.Sprintf("%s-%x.json", filepath.Base(abs), sum[:4]))
+}
+
+// RunAppLog is the log of the latest Run app for target ("main" or a ticket).
+func RunAppLog(target string) string {
+	return filepath.Join(Logs(), "run-app-"+ticketElem(target)+".log")
+}
 
 // EmulatorLog is where the active emulator's own output goes.
 func EmulatorLog() string { return filepath.Join(Logs(), "emulator.log") }
@@ -139,7 +159,7 @@ func WriteLocalProperties(dir, sdkPath string) error {
 // EnsureDirs creates the directory skeleton if missing.
 func EnsureDirs() error {
 	root := Root()
-	for _, d := range []string{root, Worktrees(), Logs(), Templates(), Reports(), Plans(), Pasted()} {
+	for _, d := range []string{root, Worktrees(), Logs(), Templates(), Reports(), Plans(), Pasted(), RunDir()} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return err
 		}

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/proc"
@@ -245,4 +246,10 @@ func orNone(serial string) string {
 		return "none (unit tests only)"
 	}
 	return serial
+}
+
+// EnsureDevice brings the active device up for a caller outside the pipeline
+// (Run app) and returns its serial - the same rules agents follow.
+func EnsureDevice(ctx context.Context, cfg *config.Config, st *store.Store, logf func(string, ...interface{})) (string, error) {
+	return ensureDeviceRunning(ctx, Task{Ticket: "run-app", Store: st, Cfg: cfg}, logFn(logf))
 }
