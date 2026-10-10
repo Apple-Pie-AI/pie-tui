@@ -145,6 +145,9 @@ func agentActions(s store.Session) []paletteItem {
 			items = append(items, paletteItem{actClaude, "Open in Claude Code", "resume the agent's session in a new terminal"})
 		}
 		items = append(items, paletteItem{actStudio, "Open Android Studio", "open the worktree as a project"})
+		if !active {
+			items = append(items, paletteItem{actRunAppTicket, "▶ Run this ticket's app", "build, install & launch it on the device"})
+		}
 		if stuck {
 			items = append(items, paletteItem{actShip, "Open a PR", "skip verification - commit + push + PR (when the gate itself is unreliable here)"})
 		}
@@ -222,6 +225,10 @@ func (m monitorModel) doAction(id actionID) (tea.Model, tea.Cmd) {
 				m.notice = "checking GitHub for PR updates on " + s.Ticket + "…"
 			}
 			return m, cmd
+		}
+	case actRunAppTicket:
+		if s := m.selected(); s != nil {
+			return m.openRunApp(s.Ticket)
 		}
 	case actStudio:
 		if s := m.selected(); s != nil {

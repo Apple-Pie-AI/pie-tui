@@ -136,6 +136,7 @@ type monitorModel struct {
 
 	// The DEVICE section (device_state.go): one device, one agent at a time.
 	device deviceState
+	runApp runAppState // runapp_ui.go
 }
 
 // answerState is the answer-and-resume overlay, which pre-empts whatever view is
@@ -372,6 +373,7 @@ const (
 	viewPermissions // command allowlist review: baseline + extra rules, add/remove
 	viewEditModels  // per-stage model pickers, the dashboard's "Edit models" row
 	viewChange      // review the local change before its PR exists (change-review gate)
+	viewRunApp      // Run app: code → variant → progress (runapp_ui.go)
 )
 
 // ---- messages --------------------------------------------------------------

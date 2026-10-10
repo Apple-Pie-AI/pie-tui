@@ -72,6 +72,8 @@ func (m monitorModel) View() string {
 		body = m.renderPermissions(w)
 	case viewEditModels:
 		body = m.renderEditModels(w)
+	case viewRunApp:
+		body = m.renderRunApp(w)
 	case viewChange:
 		body = m.renderChange(w)
 	default:

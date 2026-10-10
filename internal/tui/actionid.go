@@ -21,6 +21,7 @@ const (
 	actApprovePlan  actionID = "approve-plan"
 	actPlanFeedback actionID = "plan-feedback"
 	actStudio       actionID = "studio"
+	actRunAppTicket actionID = "run-app-ticket"
 	actClaude       actionID = "claude"
 	actResume       actionID = "resume"
 	actAllowRerun   actionID = "allow-rerun"
@@ -59,7 +60,7 @@ const (
 // check in TestEveryActionIsHandled.
 var allActions = []actionID{
 	actAnswer, actApprove, actViewPlan, actPlanMD, actApprovePlan, actPlanFeedback,
-	actStudio, actClaude, actResume, actAllowRerun, actShip, actRerun, actPause, actStop,
+	actStudio, actRunAppTicket, actClaude, actResume, actAllowRerun, actShip, actRerun, actPause, actStop,
 	actOpenPR, actViewComments, actFetchComments, actViewChange,
 	actRun, actRunFromBranch, actDetectPR, actDoctor, actConfig, actModels, actSetup, actDaemonStart, actDaemonStop,
 	actMenu, actAgentMenu, actRefresh, actQuit,
