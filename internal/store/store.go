@@ -94,6 +94,7 @@ func Open(path string) (*Store, error) {
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN change_transcript TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN change_live TEXT NOT NULL DEFAULT ''`)
 	_, _ = db.Exec(`ALTER TABLE sessions ADD COLUMN device_wait_since INTEGER NOT NULL DEFAULT 0`)
+	_, _ = db.Exec(`ALTER TABLE active_device ADD COLUMN purpose TEXT NOT NULL DEFAULT ''`)
 	return &Store{db: db}, nil
 }
 

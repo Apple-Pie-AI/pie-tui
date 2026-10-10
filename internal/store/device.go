@@ -53,8 +53,32 @@ var ErrDeviceBusy = errors.New("the device is in use")
 // Device is the active device row.
 type Device struct {
 	Kind, AVD, Serial, State, Holder string
+	// Purpose says why HolderYou holds the device - "run-app:<target>" or
+	// "taken-back:<ticket>" - so the dashboard names the ticket and branch
+	// instead of a bare "reserved by you".
+	Purpose                          string
 	PID                              int
 	StartedAt, RunningAt, AcquiredAt int64
+}
+
+// Hold purposes.
+const (
+	PurposeRunApp    = "run-app:"
+	PurposeTakenBack = "taken-back:"
+)
+
+// RunAppTarget is the target ("main" or a ticket) Run app holds the device
+// for, or "".
+func (d Device) RunAppTarget() string { return purposeArg(d, PurposeRunApp) }
+
+// TakenBackFrom is the ticket the device was taken back from, or "".
+func (d Device) TakenBackFrom() string { return purposeArg(d, PurposeTakenBack) }
+
+func purposeArg(d Device, prefix string) string {
+	if d.Holder != HolderYou || len(d.Purpose) <= len(prefix) || d.Purpose[:len(prefix)] != prefix {
+		return ""
+	}
+	return d.Purpose[len(prefix):]
 }
 
 // None reports that no device is chosen.
@@ -71,8 +95,8 @@ func (d Device) Label() string {
 // ActiveDevice reads the row.
 func (s *Store) ActiveDevice() (Device, error) {
 	var d Device
-	err := s.db.QueryRow(`SELECT kind, avd, serial, state, holder, pid, started_at, running_at, acquired_at
-		FROM active_device WHERE id = 1`).Scan(&d.Kind, &d.AVD, &d.Serial, &d.State, &d.Holder,
+	err := s.db.QueryRow(`SELECT kind, avd, serial, state, holder, purpose, pid, started_at, running_at, acquired_at
+		FROM active_device WHERE id = 1`).Scan(&d.Kind, &d.AVD, &d.Serial, &d.State, &d.Holder, &d.Purpose,
 		&d.PID, &d.StartedAt, &d.RunningAt, &d.AcquiredAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Device{State: DeviceOff}, nil
@@ -158,7 +182,7 @@ func (s *Store) MarkRunning(avd, serial string) error {
 // holder is cleared with it: there is nothing left to hold.
 func (s *Store) MarkOff() error {
 	_, err := s.db.Exec(`UPDATE active_device SET state = ?, serial = CASE WHEN kind = ? THEN serial ELSE '' END,
-		pid = 0, started_at = 0, running_at = 0, holder = '', acquired_at = 0, updated_at = ? WHERE id = 1`,
+		pid = 0, started_at = 0, running_at = 0, holder = '', purpose = '', acquired_at = 0, updated_at = ? WHERE id = 1`,
 		DeviceOff, DeviceUSB, now())
 	return err
 }

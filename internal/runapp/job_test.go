@@ -263,3 +263,40 @@ func TestUnknownVariant(t *testing.T) {
 }
 
 func read(p string) string { b, _ := os.ReadFile(p); return string(b) }
+
+// While Run app runs, the device says it is Run app on that target; after,
+// it is free again - and a device you had taken back goes back to that.
+func TestRunAppHoldsWithItsPurpose(t *testing.T) {
+	h := newHarness(t)
+	h.j.Target = "PLEX-12"
+	h.j.Dir = h.j.Repo.Path
+	var during string
+	h.j.Step = func(step, _ string) {
+		if step == StepBuild {
+			d, _ := h.j.Store.ActiveDevice()
+			during = d.RunAppTarget()
+		}
+	}
+	old := ensureProjectFilesFn
+	ensureProjectFilesFn = func(_ *config.Config, repo *config.Repo, _ string, _ func(string, ...interface{})) string {
+		return repo.Path
+	}
+	defer func() { ensureProjectFilesFn = old }()
+	if _, err := h.run(t); err != nil {
+		t.Fatal(err)
+	}
+	if during != "PLEX-12" {
+		t.Errorf("during the build the device said %q, want Run app on PLEX-12", during)
+	}
+	if d, _ := h.j.Store.ActiveDevice(); d.Holder != "" || d.Purpose != "" {
+		t.Errorf("after: %+v", d)
+	}
+
+	_, _ = h.j.Store.ReserveDevice(store.PurposeTakenBack + "PLEX-9")
+	if _, err := h.run(t); err != nil {
+		t.Fatal(err)
+	}
+	if d, _ := h.j.Store.ActiveDevice(); d.Holder != store.HolderYou || d.TakenBackFrom() != "PLEX-9" {
+		t.Errorf("a device you had taken back should stay yours, as before: %+v", d)
+	}
+}

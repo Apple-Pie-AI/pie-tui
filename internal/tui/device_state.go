@@ -10,6 +10,8 @@
 package tui
 
 import (
+	"os/exec"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -44,6 +46,10 @@ type deviceScan struct {
 	waiters  []store.Waiter
 	bootSecs int64
 	err      error // adb could not run (no SDK)
+
+	// For a device you hold for Run app on the main checkout: what it is.
+	mainRepo, mainBranch string
+	appRun               store.AppRun // the latest Run app (its variant)
 }
 
 type deviceTickMsg struct{}
@@ -65,11 +71,30 @@ func (m monitorModel) scanCmd() tea.Cmd {
 	if st == nil {
 		return nil
 	}
-	sdk, avdName := "", ""
+	sdk, avdName, repo := "", "", ""
 	if cfg, err := config.Load(); err == nil {
 		sdk, avdName = cfg.AndroidSDKPath, cfg.AVDName
+		if len(cfg.Repos) > 0 {
+			repo = cfg.Repos[0].Path
+		}
 	}
-	return func() tea.Msg { return deviceScannedMsg{scan: scanDevice(st, sdk, avdName)} }
+	return func() tea.Msg {
+		sc := scanDevice(st, sdk, avdName)
+		sc.appRun, _ = st.LatestAppRun()
+		if repo != "" && sc.dev.RunAppTarget() == "main" {
+			sc.mainRepo, sc.mainBranch = repo, gitCurrentBranch(repo)
+		}
+		return deviceScannedMsg{scan: sc}
+	}
+}
+
+// gitCurrentBranch is the checked-out branch of repo ("" if detached/unknown).
+func gitCurrentBranch(repo string) string {
+	out, err := exec.Command("git", "-C", repo, "branch", "--show-current").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
 }
 
 // sdkPathFromConfig reads android_sdk_path; "" lets the emulator package

@@ -55,8 +55,11 @@ type Result struct {
 	Repaired                                 bool
 }
 
-// ensureDevice is the seam over runner.EnsureDevice.
-var ensureDevice = runner.EnsureDevice
+// Seams over the runner helpers.
+var (
+	ensureDevice         = runner.EnsureDevice
+	ensureProjectFilesFn = runner.EnsureProjectFiles
+)
 
 // buildTimeout bounds each Gradle invocation.
 var buildTimeout = 30 * time.Minute
@@ -67,7 +70,7 @@ func Run(ctx context.Context, j Job) (Result, error) {
 	projectDir := j.Repo.Path
 	if j.Target != "main" {
 		j.step(StepPrepare, "making the worktree buildable")
-		projectDir = runner.EnsureProjectFiles(j.Cfg, j.Repo, j.Dir, j.logf)
+		projectDir = ensureProjectFilesFn(j.Cfg, j.Repo, j.Dir, j.logf)
 	} else {
 		j.step(StepPrepare, "main checkout "+projectDir+" (builds your local edits too)")
 	}
@@ -77,7 +80,7 @@ func Run(ctx context.Context, j Job) (Result, error) {
 	if err != nil {
 		return res, &StepError{Step: StepDevice, Msg: err.Error()}
 	}
-	release, err := takeDevice(j.Store)
+	release, err := takeDevice(j.Store, j.Target)
 	if err != nil {
 		return res, err
 	}
@@ -121,18 +124,22 @@ func Run(ctx context.Context, j Job) (Result, error) {
 	return res, nil
 }
 
-// takeDevice reserves the active device for the human running the app. An
-// agent holding it is refused - the dashboard offers to wait or take it back
-// before spawning a run. A device that was already yours stays yours.
-func takeDevice(st *store.Store) (func(), error) {
+// takeDevice reserves the active device for the human running the app - with
+// the target as its purpose, so the dashboard shows which ticket and branch
+// are running. An agent holding it is refused (the dashboard offers to take
+// it back first). A device that was already yours stays yours afterwards,
+// with its previous purpose.
+func takeDevice(st *store.Store, target string) (func(), error) {
 	d, err := st.ActiveDevice()
 	if err != nil {
 		return func() {}, err
 	}
+	purpose := store.PurposeRunApp + target
 	if d.Holder == store.HolderYou {
-		return func() {}, nil
+		_ = st.SetHoldPurpose(purpose)
+		return func() { _ = st.SetHoldPurpose(d.Purpose) }, nil
 	}
-	if ok, err := st.ReserveDevice(); err != nil || !ok {
+	if ok, err := st.ReserveDevice(purpose); err != nil || !ok {
 		return func() {}, &StepError{Step: StepDevice,
 			Msg: fmt.Sprintf("%s's agent is using the device - wait for it, or take it back from the dashboard", d.Holder)}
 	}

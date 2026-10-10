@@ -73,7 +73,7 @@ func TestReclaimDeviceLeavesALiveHolder(t *testing.T) {
 // and a human's hold is never reclaimed.
 func TestDaemonLeavesTheDeviceAlone(t *testing.T) {
 	st := daemonStore(t)
-	if ok, _ := st.ReserveDevice(); !ok {
+	if ok, _ := st.ReserveDevice(""); !ok {
 		t.Fatal("reserve")
 	}
 	reclaimDevice(st)
