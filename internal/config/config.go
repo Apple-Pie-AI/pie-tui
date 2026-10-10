@@ -190,6 +190,18 @@ const DefaultAllowedTools = "Edit Write Read Glob Grep MultiEdit TodoWrite Skill
 	"Bash(adb:*) Bash(java:*) Bash(mkdir:*) Bash(which:*) Bash(pwd:*) Bash(echo:*) " +
 	"Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*) Bash(tee:*) " +
 	"Bash(grep:*) Bash(rg:*) Bash(find:*) Bash(git status:*) " +
+	"Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git ls-tree:*)"
+
+// skillTeeDefaultAllowedTools is the default before `git ls-tree` joined it,
+// byte for byte - same upgrade treatment as prevDefaultAllowedTools. ls-tree
+// is read-only inspection a verify agent reaches for to see the project's
+// files; off the list, it paused the run on an approval nobody was there to
+// answer.
+const skillTeeDefaultAllowedTools = "Edit Write Read Glob Grep MultiEdit TodoWrite Skill " +
+	"Bash(./gradlew:*) Bash(gradle:*) Bash(cd:*) Bash(chmod +x:*) " +
+	"Bash(adb:*) Bash(java:*) Bash(mkdir:*) Bash(which:*) Bash(pwd:*) Bash(echo:*) " +
+	"Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*) Bash(tee:*) " +
+	"Bash(grep:*) Bash(rg:*) Bash(find:*) Bash(git status:*) " +
 	"Bash(git diff:*) Bash(git log:*) Bash(git show:*)"
 
 // prevDefaultAllowedTools is the default before Skill and tee joined it, byte
@@ -475,7 +487,7 @@ func (c *Config) applyDefaults() {
 	// then-current default allowlist into allowed_tools as if the user had typed
 	// it. Treat that exact literal as "unset" so those users keep receiving
 	// default upgrades; a hand-edited list is respected untouched.
-	if c.AllowedTools == prevDefaultAllowedTools {
+	if c.AllowedTools == prevDefaultAllowedTools || c.AllowedTools == skillTeeDefaultAllowedTools {
 		c.AllowedTools = ""
 	}
 	if c.AllowedTools == legacyAllowedTools {

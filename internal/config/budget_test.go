@@ -3,8 +3,22 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// A config that baked the previous default allowlist keeps tracking the
+// default (which now includes `git ls-tree`) instead of freezing the old list.
+func TestPreviousDefaultAllowlistUpgrades(t *testing.T) {
+	c := &Config{AllowedTools: skillTeeDefaultAllowedTools}
+	c.applyDefaults()
+	if c.AllowedTools != "" {
+		t.Fatalf("AllowedTools = %q, want \"\" (track the default)", c.AllowedTools)
+	}
+	if !strings.Contains(c.EffectiveAllowedTools(), "Bash(git ls-tree:*)") {
+		t.Error("the default should allow git ls-tree")
+	}
+}
 
 // Each stage uses its own budget when set and falls back to max_budget_usd
 // otherwise - self-review to the 30% share it always had.
