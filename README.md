@@ -231,7 +231,7 @@ Every command and `pie run` flag is in [docs/cli.md](docs/cli.md).
 
 Everything Apple Pie owns lives in `~/.pie`: `config.toml` (mode 0600), the SQLite state, one worktree per ticket, and archived plans, reports, and logs. Secrets never go in the config file — they live in your OS keychain, or in `PIE_*` environment variables for headless use.
 
-The settings you'll touch most are the gates (`review_plans`, `review_before_pr`), the per-stage models (easiest from **Edit models**), and `max_budget_usd`. Everything else is in [docs/configuration.md](docs/configuration.md); the command allowlist and approvals are in [docs/permissions.md](docs/permissions.md).
+The settings you'll touch most are the gates (`review_plans`, `review_before_pr`), the per-stage models (easiest from **Edit models**), and the stage budgets (`max_budget_usd` plus optional per-stage `max_budget_<stage>_usd`; a stage that hits its budget asks you in the dashboard whether to continue). Everything else is in [docs/configuration.md](docs/configuration.md); the command allowlist and approvals are in [docs/permissions.md](docs/permissions.md).
 
 ## Cost, telemetry, and privacy
 

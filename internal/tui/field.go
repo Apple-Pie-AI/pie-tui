@@ -26,6 +26,10 @@ type formField struct {
 	value  string
 	secret bool
 	cursor int
+	// placeholder is shown dimmed while value is empty - what an empty field
+	// resolves to (e.g. a stage budget falling back to the default). Display
+	// only: it is never saved, so the field keeps tracking its fallback.
+	placeholder string
 }
 
 // formModel is a minimal hand-rolled multi-field form (no bubbles dependency).

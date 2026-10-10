@@ -233,6 +233,8 @@ func applyConfigFields(cfg *config.Config, f []formField) {
 		case fldReviewChange:
 			v := parseYN(fld.value)
 			cfg.ReviewBeforePR = &v
+		default:
+			applyBudgetField(cfg, fld.key, fld.value)
 		}
 	}
 	cfg.Repos = []config.Repo{repo}

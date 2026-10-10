@@ -262,7 +262,7 @@ func (m monitorModel) renderDashboardHeader(cw int) string {
 	// waiting, and one keystroke resumes it.
 	if n := len(m.pendingApprovals); n > 0 {
 		head += whyStyle.Render(truncate(
-			fmt.Sprintf("⏸ %s waiting for your approval - press A to review", plural(n, "command")), cw)) + "\n"
+			fmt.Sprintf("⏸ %s waiting for your approval - press A to review", plural(n, approvalNoun(m.pendingApprovals))), cw)) + "\n"
 	}
 	return head
 }

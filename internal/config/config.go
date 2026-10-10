@@ -51,11 +51,18 @@ type Config struct {
 	// "auto" approves commands that already match the effective allowlist
 	// without prompting (the human pre-approved those shapes by allowlisting
 	// them); "always-ask" routes every callback to the dashboard.
-	ApprovalPolicy string  `toml:"approval_policy"`
-	MaxBudgetUSD   float64 `toml:"max_budget_usd"`
-	ModelPlan      string  `toml:"model_plan"`
-	ModelImpl      string  `toml:"model_impl"`
-	ModelReview    string  `toml:"model_review"`
+	ApprovalPolicy string `toml:"approval_policy"`
+	// MaxBudgetUSD is the default --max-budget-usd for every stage; the
+	// per-stage keys below override it (0 = use this). See BudgetFor.
+	MaxBudgetUSD           float64 `toml:"max_budget_usd"`
+	MaxBudgetPlanUSD       float64 `toml:"max_budget_plan_usd"`
+	MaxBudgetImplUSD       float64 `toml:"max_budget_impl_usd"`
+	MaxBudgetReviewUSD     float64 `toml:"max_budget_review_usd"`
+	MaxBudgetVerifyUSD     float64 `toml:"max_budget_verify_usd"`
+	MaxBudgetCommentFixUSD float64 `toml:"max_budget_comment_fix_usd"`
+	ModelPlan              string  `toml:"model_plan"`
+	ModelImpl              string  `toml:"model_impl"`
+	ModelReview            string  `toml:"model_review"`
 	// ModelVerify, when set, runs the verify stage on its own model instead
 	// of ModelImpl. Certification honesty is where model judgment is
 	// cheapest to buy: a field session on a small model certified
@@ -444,7 +451,7 @@ func (c *Config) applyDefaults() {
 		c.Concurrency = 3
 	}
 	if c.MaxBudgetUSD == 0 {
-		c.MaxBudgetUSD = 5
+		c.MaxBudgetUSD = DefaultMaxBudgetUSD
 	}
 	// Models are intentionally left empty by default: an empty value makes the
 	// agent omit `--model`, so Claude Code uses whatever default the user/org has

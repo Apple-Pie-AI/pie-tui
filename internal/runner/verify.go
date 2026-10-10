@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	// Aliased: verifyWithAgent's `emulator bool` parameter shadows the name.
 	emusdk "github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
@@ -88,7 +89,7 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 		PermissionMode:         mode,
 		PermissionPromptConfig: approvalCallbackConfig(t, worktree, mode, logf),
 		Model:                  vModel,
-		MaxBudgetUSD:           t.Cfg.MaxBudgetUSD,
+		MaxBudgetUSD:           t.Cfg.BudgetFor(config.StageVerify),
 		AnthropicKey:           anthropicKey,
 		ResumeID:               sessionID,
 		SettingsJSON:           t.Cfg.SandboxSettingsJSON(),
@@ -99,9 +100,9 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 	// Truncated to the second so a coarse-granularity filesystem can't stamp the
 	// report just below the threshold and make a genuinely fresh one look stale.
 	stageStart := time.Now().Truncate(time.Second)
-	res, err := agent.Run(ctx,
+	res, err := runStage(ctx, t, "verify",
 		agent.BuildVerifyPrompt(t.Ticket, t.Summary, worktree, emulator, allowFix, allowed, projectDir, adbPath),
-		vOpts)
+		vOpts, logf, reportUnfinished(worktree))
 	if err != nil {
 		logf("[%s] (warn) verify stage exited: %v", t.Ticket, err)
 	}
@@ -131,7 +132,15 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 		}
 		return nil, false, newSession, denials, errText
 	}
-	return rep, rep.Verified != nil && *rep.Verified, newSession, denials, res.ErrorText
+	green := rep.Verified != nil && *rep.Verified
+	if res.BudgetExceeded && !green {
+		// Stopped at its budget before certifying green: whatever the report
+		// says, the build was not shown to be red - report it as a verify that
+		// didn't finish, which every caller parks naming the budget.
+		logf("[%s] verify stopped at its budget before certifying the build", t.Ticket)
+		return nil, false, newSession, denials, res.ErrorText
+	}
+	return rep, green, newSession, denials, res.ErrorText
 }
 
 // projectGradlewRule is the allowlist rule for a monorepo's wrapper, run by

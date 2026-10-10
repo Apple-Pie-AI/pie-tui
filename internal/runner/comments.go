@@ -11,8 +11,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
@@ -129,6 +131,9 @@ func addressComments(ctx context.Context, t Task, h Hooks) Outcome {
 		// is the flavor-diagnosed denial park, not an empty "fixes ready".
 		return denialNeedsYou(t, h, worktree, fixRes.Denials)
 	case fixParkDead:
+		if isBudgetStop(fixRes.ErrorText) {
+			return budgetNeedsYou(t, h, "comment fix", fixRes.ErrorText)
+		}
 		// A dead agent must not park a victory state. "Exited badly" is
 		// tolerable only when there is something to review - a contract entry
 		// for this batch or a change in the worktree; with neither, fix-review
@@ -342,7 +347,7 @@ func runCommentFix(ctx context.Context, t Task, worktree, base string, cmts []st
 		PermissionMode:         fixMode,
 		PermissionPromptConfig: approvalCallbackConfig(t, worktree, fixMode, logf),
 		Model:                  model,
-		MaxBudgetUSD:           t.Cfg.MaxBudgetUSD,
+		MaxBudgetUSD:           t.Cfg.BudgetFor(config.StageCommentFix),
 		AnthropicKey:           t.AnthropicKey,
 		SettingsJSON:           t.Cfg.SandboxSettingsJSON(),
 		Logf:                   logf,
@@ -359,7 +364,8 @@ func runCommentFix(ctx context.Context, t Task, worktree, base string, cmts []st
 			prompt += "\n\nAdditional instruction from the repository owner: " + fb
 		}
 	}
-	res, err := agent.Run(ctx, prompt, opts)
+	res, err := runStage(ctx, t, "comment fix", prompt, opts, logf,
+		func(time.Time) bool { return !fixEvidence(worktree, cmts) })
 	if err != nil {
 		// Not fatal on its own: the agent may have written the files before
 		// exiting badly. The caller decides - with evidence, not hope.
