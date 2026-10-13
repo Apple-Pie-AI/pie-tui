@@ -6,6 +6,7 @@
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
         Edit config                     allowlist, repo, branch, budgets                                                                                                                
         Edit models                     which Claude model runs each stage                                                                                                              
+        Customize workflows             each stage's prompt, in your browser                                                                                                            
                                                                                                                              PIE-14 · Review the PR                                     
       D E V I C E                                                                                                            ┆ Needs you - the agent got stuck (see the log below).     
         No device running          agents can't verify on a device                                off                        ┆ Use the actions menu to open the project or run it again.
@@ -23,7 +24,6 @@
                                                                                                                                                                                         
       ▸ S T O P P E D · 1                                                                                                                                                               
                                                                                                                                                                                         
-
 
 
 

@@ -29,6 +29,7 @@ var dashCommands = []struct {
 	{"Checkout a branch", "check out an existing branch into a pie worktree", actRunFromBranch, false},
 	{"Edit config", "allowlist, repo, branch, budgets", actConfig, true},
 	{"Edit models", "which Claude model runs each stage", actModels, true},
+	{"Customize workflows", "each stage's prompt, in your browser", actWorkflows, true},
 }
 
 // renderCommandRow draws one of the commands.

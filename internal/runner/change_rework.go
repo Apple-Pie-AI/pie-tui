@@ -68,7 +68,7 @@ func reworkChange(ctx context.Context, t Task, h Hooks) Outcome {
 		allowed = ""
 	}
 	logf("[%s] stage:rework model:%s permissions:%s%s", t.Ticket, model, mode, changeRoundLabel(sess.ChangeRound+1))
-	prompt := agent.BuildChangeReworkPrompt(feedback, sess.ChangeRound+1)
+	prompt := t.prompts().Rework(feedback, sess.ChangeRound+1)
 	opts := agent.Options{
 		WorktreeDir:            worktree,
 		AllowedTools:           allowed,

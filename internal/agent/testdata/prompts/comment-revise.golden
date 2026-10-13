@@ -1,0 +1,13 @@
+The repository owner reviewed your local fixes before shipping them and asks
+for changes:
+
+use the existing helper
+
+Revise the code in this worktree accordingly. The same rules apply: smallest
+change that satisfies the request, no commit, no push, no GitHub replies.
+
+Then REWRITE .agent/comment_fixes.json (all entries, same schema and voice
+rules as before - id, action, note, and a draft "reply" for each fixed
+comment; a skipped comment's note is written TO THE REVIEWER, never a
+narration of your triage) and update .agent/report.json's "summary" and
+"filesChanged" for this round.

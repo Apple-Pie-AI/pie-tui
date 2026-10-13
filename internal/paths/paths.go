@@ -42,6 +42,14 @@ func RunRecipeFor(repo string) string {
 	return filepath.Join(RunDir(), fmt.Sprintf("%s-%x.json", filepath.Base(abs), sum[:4]))
 }
 
+// WorkflowsDir holds the per-repo workflow customizations (the editor's saves).
+func WorkflowsDir() string { return filepath.Join(Root(), "workflows") }
+
+// WorkflowsFor is repo's workflow customization file, named like its run recipe.
+func WorkflowsFor(repo string) string {
+	return filepath.Join(WorkflowsDir(), filepath.Base(RunRecipeFor(repo)))
+}
+
 // RunAppLog is the log of the latest Run app for target ("main" or a ticket).
 func RunAppLog(target string) string {
 	return filepath.Join(Logs(), "run-app-"+ticketElem(target)+".log")

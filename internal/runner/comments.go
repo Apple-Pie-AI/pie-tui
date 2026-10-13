@@ -340,7 +340,7 @@ func runCommentFix(ctx context.Context, t Task, worktree, base string, cmts []st
 		fixAllowed = "" // no allowlist under the classifier; the prompt says so
 	}
 	logf("[%s] stage:comment-fix model:%s permissions:%s", t.Ticket, model, fixMode)
-	prompt := agent.BuildCommentFixPrompt(t.Ticket, t.Summary, base, fixAllowed, toReviewComments(cmts))
+	prompt := t.prompts().CommentFix(t.Ticket, t.Summary, base, fixAllowed, toReviewComments(cmts))
 	opts := agent.Options{
 		WorktreeDir:            worktree,
 		AllowedTools:           fixAllowed,

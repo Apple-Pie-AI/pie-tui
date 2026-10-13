@@ -6,6 +6,7 @@
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
         Edit config                     allowlist, repo, branch, budgets                                                                                                                
         Edit models                     which Claude model runs each stage                                                                                                              
+        Customize workflows             each stage's prompt, in your browser                                                                                                            
                                                                                                                              Pixel 7 (USB) · 2A281FDH3001                   
       D E V I C E                                                                                                            connected · no agent is using it               
       ▸ Pixel 7 (USB)              no agent is using it                                           running · free        18m                                                 
@@ -23,7 +24,6 @@
                                                                                                                              press enter to choose an action                
       ▸ S T O P P E D · 1                                                                                                                                                   
                                                                                                                                                                             
-
 
 
 

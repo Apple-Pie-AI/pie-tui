@@ -312,6 +312,9 @@ func (m monitorModel) doAction(id actionID) (tea.Model, tea.Cmd) {
 		m.openEditConfig()
 	case actModels:
 		m.openEditModels()
+	case actWorkflows:
+		m.notice = "opening the workflow editor…"
+		return m, openWorkflowEditor()
 	case actSetup:
 		m.openSetupForm()
 	case actDaemonStart:

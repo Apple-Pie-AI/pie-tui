@@ -8,12 +8,11 @@ package tui
 
 import (
 	"fmt"
-	"os/exec"
-	"runtime"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/Apple-Pie-AI/pie-tui/internal/browser"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/review"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
@@ -187,11 +186,7 @@ func (m monitorModel) queueAndFix() (tea.Model, tea.Cmd) {
 // anything this screen renders badly or the agent gets wrong.
 func openCommentURL(url string) tea.Cmd {
 	return func() tea.Msg {
-		opener := "xdg-open"
-		if runtime.GOOS == "darwin" {
-			opener = "open"
-		}
-		if err := exec.Command(opener, url).Start(); err != nil {
+		if err := browser.Open(url); err != nil {
 			return commentsFetchedMsg{err: err}
 		}
 		return nil

@@ -46,7 +46,7 @@ func TestAllActionsIsComplete(t *testing.T) {
 	// The total number of actionID constants, not a running tally of additions -
 	// two branches each appending their own "+actFoo" to this line is a conflict
 	// that has to be counted out by hand to resolve.
-	const declared = 32
+	const declared = 33
 	if len(allActions) != declared {
 		t.Fatalf("allActions has %d entries but %d actionID constants are declared - "+
 			"register the new one (and update this count)", len(allActions), declared)

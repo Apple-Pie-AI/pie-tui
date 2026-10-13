@@ -17,6 +17,7 @@ import (
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
+	"github.com/Apple-Pie-AI/pie-tui/internal/workflows"
 )
 
 // runAgent is the seam tests replace.
@@ -45,7 +46,7 @@ func repair(ctx context.Context, j Job, r *Recipe, projectDir, serial, module, v
 	before := tree(projectDir)
 	start := time.Now().Truncate(time.Second)
 	recipeJSON, _ := json.MarshalIndent(r, "", "  ")
-	prompt := agent.BuildRunRepairPrompt(agent.RunRepairInput{
+	prompt := workflowsFor(j.Repo).RunRepair(agent.RunRepairInput{
 		ProjectDir: projectDir, Serial: serial, Module: module, Variant: variant,
 		RecipeJSON: string(recipeJSON),
 		Failure: agent.RunFailure{Step: se.Step, Explanation: se.Msg, Argv: se.Argv,
@@ -149,4 +150,12 @@ func gitTop(dir string) string {
 		return dir
 	}
 	return strings.TrimSpace(string(out))
+}
+
+// workflowsFor is repo's customized prompts (built-in when it has none).
+func workflowsFor(repo *config.Repo) agent.Prompts {
+	if repo == nil {
+		return agent.Prompts{}
+	}
+	return workflows.For(repo.Path)
 }

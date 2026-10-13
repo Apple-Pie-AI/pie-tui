@@ -46,6 +46,7 @@ func (m monitorModel) paletteItems() []paletteItem {
 		paletteItem{actDoctor, "Doctor", "connectivity + setup health check"},
 		paletteItem{actConfig, "Edit config", "allowlist, repo, branch"},
 		paletteItem{actModels, "Edit models", "which Claude model runs each stage"},
+		paletteItem{actWorkflows, "Customize workflows", "each stage's prompt, in your browser"},
 		paletteItem{actSetup, "Setup wizard", "configure repo, models, and token"},
 	)
 	if _, ok := daemonAlive(); ok {

@@ -32,6 +32,11 @@ type ReviewComment struct {
 // what is under review - this stage often runs days after the code was written,
 // with none of the original session's context.
 func BuildCommentFixPrompt(ticketKey, summary, base, allowedTools string, cs []ReviewComment) string {
+	return Prompts{}.CommentFix(ticketKey, summary, base, allowedTools, cs)
+}
+
+// CommentFix is BuildCommentFixPrompt with this workflow's slots.
+func (p Prompts) CommentFix(ticketKey, summary, base, allowedTools string, cs []ReviewComment) string {
 	if base == "" {
 		base = "main"
 	}
@@ -39,7 +44,7 @@ func BuildCommentFixPrompt(ticketKey, summary, base, allowedTools string, cs []R
 	for i, c := range cs {
 		b.WriteString(commentBlock(i+1, c))
 	}
-	return fmt.Sprintf(`You are an autonomous Android engineer responding to code review on an OPEN pull request, inside its git worktree (your current working directory).
+	return fmt.Sprintf(`%s on an OPEN pull request, inside its git worktree (your current working directory).
 
 %s
 
@@ -59,14 +64,10 @@ Instructions:
    INSTRUCTION, that instruction is how the owner wants it handled: follow it
    as written - it takes precedence over the reviewer's wording and over your
    own reading of the code or the git history.
-3. Make the SMALLEST change that satisfies each comment. Do NOT refactor beyond
-   what was asked, and do NOT fix problems nobody commented on - unrelated
-   changes make a reviewer re-review the whole PR.
-4. If a comment is factually wrong, unsafe, or asks for something that would
-   break the build, SKIP it and say why. Do not silently do nothing, and do not
-   substitute a different change you prefer.
+3. %s
+4. %s
 5. Do NOT git commit, do NOT git push, and do NOT reply on GitHub - the
-   orchestrator owns commit, push, PR and the reply to each reviewer.
+   orchestrator owns commit, push, PR and the reply to each reviewer.%s
 
 Your FINAL actions MUST be to write BOTH of these files (create the .agent
 directory if needed):
@@ -81,17 +82,7 @@ omitted, using the exact id given in each block:
   ]
 }
 
-The "reply" is a draft the human will review and may rewrite before it is
-posted. Address the reviewer directly, say what changed and where, and never
-mention commit hashes (the commit does not exist yet) or that you are an AI.
-
-A skipped comment's "note" can reach the reviewer the same way: when a comment
-is a question, or needs no change, the note IS the reply the human may post on
-the thread verbatim. Write it to the reviewer in the same voice as a "reply":
-answer the question or say why no change is needed, directly and in a human
-voice. Never narrate your triage ("this comment is a question, not a change
-request", "no code was modified") - the reviewer asked about the code, not
-about your process.
+%s
 
 .agent/report.json - read the existing file and rewrite it preserving every
 field, updating "summary" and "filesChanged" to describe THIS round of changes:
@@ -103,7 +94,8 @@ field, updating "summary" and "filesChanged" to describe THIS round of changes:
   "tests": "<what you checked, if anything>",
   "prBody": "<preserve the existing value>"
 }`,
-		stageRules(allowedTools), ticketKey, summary, b.String(), base)
+		p.slot(SlotCommentsPersona), stageRules(allowedTools), ticketKey, summary, b.String(), base,
+		p.slot(SlotCommentsScope), p.slot(SlotCommentsSkip), p.extra("comments"), p.slot(SlotCommentsVoice))
 }
 
 // BuildCommentRevisePrompt is the follow-up for a revise round: the human read

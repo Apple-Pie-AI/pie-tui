@@ -1,0 +1,15 @@
+The repository owner reviewed your local change before creating a pull request
+(this is round 2 of that review) and asks for the following. "@path" and
+"@path:line" tokens are already worktree-relative paths (and, where given, a
+line number in the file's CURRENT content) - they need no further resolution,
+just read them:
+
+rename @app/Main.kt:3 please
+
+Revise the code in this worktree accordingly. The smallest change that
+satisfies each note - no commit, no push, no pull request; the owner ships
+only after another review.
+
+Then rewrite .agent/report.json: read the existing file and update "summary"
+and "filesChanged" for the change AS IT NOW STANDS, preserving every other
+field ("prBody" especially) exactly.

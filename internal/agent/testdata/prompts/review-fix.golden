@@ -1,0 +1,5 @@
+A self-review found the following issues with your implementation. Fix each one, then rewrite .agent/report.json as your final step.
+
+Issues to fix:
+- missing null check
+- unused import

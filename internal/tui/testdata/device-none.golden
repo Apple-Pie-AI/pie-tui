@@ -6,6 +6,7 @@
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
         Edit config                     allowlist, repo, branch, budgets                                                                                                                
         Edit models                     which Claude model runs each stage                                                                                                              
+        Customize workflows             each stage's prompt, in your browser                                                                                                            
                                                                                                                              Pixel_7_API_34 is not running                         
       D E V I C E                                                                                                            Start one so agents can install and check the app on a
       ▸ Pixel_7_API_34             not running · agents can't verify on it                        off                        device. One device at a time, one agent at a time.    
@@ -23,7 +24,6 @@
                                                                                                                                                                                    
       ▸ S T O P P E D · 1                                                                                                                                                          
                                                                                                                                                                                    
-
 
 
 

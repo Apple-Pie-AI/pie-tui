@@ -6,6 +6,7 @@
      Checkout a branch               check out an existing branch into a pie worktree                
      Edit config                     allowlist, repo, branch, budgets                                
      Edit models                     which Claude model runs each stage                              
+     Customize workflows             each stage's prompt, in your browser                            
 
    D E V I C E
      No device running      agents can't verify on a device                 off                      
@@ -26,7 +27,6 @@
      DEMO-EMULATOR          Add subtitle Text composable and string resource                       1h
 
    enter collapses this section
-
 
 
 

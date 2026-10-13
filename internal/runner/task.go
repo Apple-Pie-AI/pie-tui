@@ -10,8 +10,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
+	"github.com/Apple-Pie-AI/pie-tui/internal/workflows"
 )
 
 // Task is one ticket to process.
@@ -186,4 +188,13 @@ func stopped(ctx context.Context, t Task, logf logFn) (Outcome, bool) {
 	}
 	logf("[%s] cancelled - stopping before the next stage", t.Ticket)
 	return Outcome{State: store.StateStopped, Err: ctx.Err()}, true
+}
+
+// prompts is this repo's workflow: the prompt slots its team customized in the
+// workflow editor, or the built-in prompts.
+func (t Task) prompts() agent.Prompts {
+	if t.Repo == nil {
+		return agent.Prompts{}
+	}
+	return workflows.For(t.Repo.Path)
 }

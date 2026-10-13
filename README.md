@@ -57,6 +57,7 @@ See it in action solving PR comments:
 - **Builds must actually pass.** No fresh, successful verification, no PR. The one way around it is `--ship`, a human override for a fix you've checked yourself.
 - **Review-comment fixes are previewed.** You see each fix's diff and the reply before anything is pushed or posted.
 - **Nothing merges itself.** There is no auto-merge, no merge flag, and no code path that merges a pull request.
+- **Customize each stage, not the contract.** **Customize workflows** opens each stage's prompt in your browser: rewrite how the agent plans, your coding rules, what self-review checks, how replies read. The parts Apple Pie tracks a run by stay locked. See [docs/customizing-workflows.md](docs/customizing-workflows.md).
 - **Apple Pie's own files never reach your PRs.** Plans, reports, and logs live under `~/.pie`; the agent's scratch directory is git-excluded and scrubbed before every commit.
 
 How each workflow runs, every gate, and the full state machine are in [docs/workflows.md](docs/workflows.md).
@@ -268,6 +269,7 @@ Go 1.26.2 or newer. On an older toolchain, prefix with `GOTOOLCHAIN=auto` and Go
 ## Documentation
 
 - [docs/workflows.md](docs/workflows.md) — each workflow step by step, every gate, the lifecycle states, and review-comment handling in depth
+- [docs/customizing-workflows.md](docs/customizing-workflows.md) — rewriting each stage's prompt in the workflow editor, and what stays locked
 - [docs/cli.md](docs/cli.md) — every command and `pie run` flag
 - [docs/configuration.md](docs/configuration.md) — the full config reference
 - [docs/permissions.md](docs/permissions.md) — the command allowlist, rule syntax, and approvals

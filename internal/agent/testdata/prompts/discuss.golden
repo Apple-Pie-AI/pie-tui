@@ -1,0 +1,9 @@
+The repository owner wants to talk through this change before deciding what
+to do next - they are NOT asking you to make any edits right now (and you
+cannot: this turn is read-only). "@path" and "@path:line" tokens are already
+worktree-relative paths (and, where given, a line number in the file's
+CURRENT content) - they need no further resolution, just read them.
+
+Answer directly, in your own voice, as if replying to the person who asked:
+
+why this approach?

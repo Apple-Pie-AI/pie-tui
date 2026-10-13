@@ -6,6 +6,7 @@
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
         Edit config                     allowlist, repo, branch, budgets                                                                                                                
         Edit models                     which Claude model runs each stage                                                                                                              
+        Customize workflows             each stage's prompt, in your browser                                                                                                            
                                                                                                                              Pixel_7_API_34 · emulator-5554                             
       D E V I C E                                                                                                            running · reserved by you                                  
       ▸ Pixel_7_API_34             reserved by you · taken back from PLEX-64818                   in use by you          1m                                                             
@@ -29,7 +30,6 @@
                                                                                                                                                                                         
                                                                                                                              press enter to choose an action                            
                                                                                                                                                                                         
-
 
 
 
