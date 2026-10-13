@@ -60,6 +60,7 @@ type Config struct {
 	MaxBudgetReviewUSD     float64 `toml:"max_budget_review_usd"`
 	MaxBudgetVerifyUSD     float64 `toml:"max_budget_verify_usd"`
 	MaxBudgetCommentFixUSD float64 `toml:"max_budget_comment_fix_usd"`
+	MaxBudgetRunUSD        float64 `toml:"max_budget_run_usd"`
 	ModelPlan              string  `toml:"model_plan"`
 	ModelImpl              string  `toml:"model_impl"`
 	ModelReview            string  `toml:"model_review"`
@@ -73,6 +74,8 @@ type Config struct {
 	// round, which resumes the same session) on its own model instead of
 	// ModelImpl.
 	ModelCommentFix string `toml:"model_comment_fix"`
+	// ModelRun runs Run app's repair sessions; blank = ModelImpl.
+	ModelRun string `toml:"model_run"`
 	// SavedModels are model names the user added from the models screen,
 	// offered in every stage's picker - passed to `claude --model` verbatim.
 	SavedModels         []string `toml:"saved_models"`
@@ -183,6 +186,18 @@ func (c *Config) SandboxSettingsJSON() string {
 // (Note: read commands like `cat` can still reach paths outside the worktree;
 // full FS confinement needs a sandbox.)
 const DefaultAllowedTools = "Edit Write Read Glob Grep MultiEdit TodoWrite Skill " +
+	"Bash(./gradlew:*) Bash(gradle:*) Bash(cd:*) Bash(chmod +x:*) " +
+	"Bash(adb:*) Bash(java:*) Bash(mkdir:*) Bash(which:*) Bash(pwd:*) Bash(echo:*) " +
+	"Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*) Bash(tee:*) " +
+	"Bash(grep:*) Bash(rg:*) Bash(find:*) Bash(git status:*) " +
+	"Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git ls-tree:*)"
+
+// skillTeeDefaultAllowedTools is the default before `git ls-tree` joined it,
+// byte for byte - same upgrade treatment as prevDefaultAllowedTools. ls-tree
+// is read-only inspection a verify agent reaches for to see the project's
+// files; off the list, it paused the run on an approval nobody was there to
+// answer.
+const skillTeeDefaultAllowedTools = "Edit Write Read Glob Grep MultiEdit TodoWrite Skill " +
 	"Bash(./gradlew:*) Bash(gradle:*) Bash(cd:*) Bash(chmod +x:*) " +
 	"Bash(adb:*) Bash(java:*) Bash(mkdir:*) Bash(which:*) Bash(pwd:*) Bash(echo:*) " +
 	"Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*) Bash(tee:*) " +
@@ -472,7 +487,7 @@ func (c *Config) applyDefaults() {
 	// then-current default allowlist into allowed_tools as if the user had typed
 	// it. Treat that exact literal as "unset" so those users keep receiving
 	// default upgrades; a hand-edited list is respected untouched.
-	if c.AllowedTools == prevDefaultAllowedTools {
+	if c.AllowedTools == prevDefaultAllowedTools || c.AllowedTools == skillTeeDefaultAllowedTools {
 		c.AllowedTools = ""
 	}
 	if c.AllowedTools == legacyAllowedTools {

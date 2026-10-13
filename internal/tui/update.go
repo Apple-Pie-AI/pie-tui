@@ -104,7 +104,10 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case deviceTickMsg, deviceScannedMsg, deviceOpMsg:
 		return m.handleDeviceMsg(msg)
+	case runAppSpawnedMsg:
+		return m.handleRunAppSpawned(msg)
 	case tickMsg:
+		m.refreshRunApp()
 		m.reload()
 		if m.view == viewChange {
 			// A live --discuss round updates the transcript/error/liveness in
@@ -394,6 +397,8 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.updateEditModels(msg)
 	case viewChange:
 		return m.updateChange(msg)
+	case viewRunApp:
+		return m.updateRunApp(msg)
 	}
 	if m.device.capturing() {
 		return m.updateDevice(msg)

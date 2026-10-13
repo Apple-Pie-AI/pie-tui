@@ -68,6 +68,7 @@ General coding agents don't know what verifying an Android change means. Apple P
 - **Your build, not a guess.** The agent discovers how *your* project builds and tests — Gradle tasks, multi-module and KMP projects, company build scripts — runs them for real, and self-certifies the result in a report Apple Pie checks for freshness, so a crashed run can't leave a stale "it passed" behind.
 - **Unit vs. instrumented tests.** Decided at plan time, enforced at verify time.
 - **One device, one agent at a time.** The dashboard's DEVICE section shows the emulator (always windowed) or USB phone Apple Pie uses, and which ticket's agent is on it right now: ticket, branch and worktree, plus who's next in line. Start it, switch it, or take it back from an agent from there or with `pie devices`. See [docs/devices.md](docs/devices.md).
+- **Run app.** Build, install and launch the main checkout or any ticket on that device, the way Android Studio's ▶ does: deterministic Gradle and adb, the old app removed first, with an agent called once only to repair a step that failed, and what it learned replayed after that (`pie run-app`).
 - **Android Studio handoff.** Open any agent's worktree in the IDE, and your hand-edits there count: the change is re-verified before it ships.
 
 ## Install

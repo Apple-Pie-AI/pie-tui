@@ -81,23 +81,31 @@ func (s *Store) AcquireDevice(ticket string, isAlive func(int) bool) (bool, erro
 }
 
 // ReserveDevice gives the device to the human (Run app, or after taking it
-// back) when it is free or already theirs.
-func (s *Store) ReserveDevice() (bool, error) {
-	return affected(s.db.Exec(`UPDATE active_device SET holder = ?, acquired_at = ?, updated_at = ?
-		WHERE id = 1 AND holder IN ('', ?)`, HolderYou, now(), now(), HolderYou))
+// back) when it is free or already theirs; purpose says why (see Device).
+func (s *Store) ReserveDevice(purpose string) (bool, error) {
+	return affected(s.db.Exec(`UPDATE active_device SET holder = ?, purpose = ?, acquired_at = ?, updated_at = ?
+		WHERE id = 1 AND holder IN ('', ?)`, HolderYou, purpose, now(), now(), HolderYou))
+}
+
+// SetHoldPurpose changes why HolderYou holds the device (Run app on a device
+// you had taken back, and back again afterwards).
+func (s *Store) SetHoldPurpose(purpose string) error {
+	_, err := s.db.Exec(`UPDATE active_device SET purpose = ?, updated_at = ? WHERE id = 1 AND holder = ?`,
+		purpose, now(), HolderYou)
+	return err
 }
 
 // TakeDevice moves the device from one holder to another (take it back from
 // an agent: from = the ticket, to = HolderYou). Guarded on from: if the agent
 // released in the meantime it reports false, and the caller reserves instead.
-func (s *Store) TakeDevice(from, to string) (bool, error) {
-	return affected(s.db.Exec(`UPDATE active_device SET holder = ?, acquired_at = ?, updated_at = ?
-		WHERE id = 1 AND holder = ?`, to, now(), now(), from))
+func (s *Store) TakeDevice(from, to, purpose string) (bool, error) {
+	return affected(s.db.Exec(`UPDATE active_device SET holder = ?, purpose = ?, acquired_at = ?, updated_at = ?
+		WHERE id = 1 AND holder = ?`, to, purpose, now(), now(), from))
 }
 
 // ReleaseDevice hands the device back - only by its holder.
 func (s *Store) ReleaseDevice(holder string) (bool, error) {
-	return affected(s.db.Exec(`UPDATE active_device SET holder = '', acquired_at = 0, updated_at = ?
+	return affected(s.db.Exec(`UPDATE active_device SET holder = '', purpose = '', acquired_at = 0, updated_at = ?
 		WHERE id = 1 AND holder = ?`, now(), holder))
 }
 

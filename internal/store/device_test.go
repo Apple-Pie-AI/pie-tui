@@ -185,13 +185,13 @@ func TestTakeBackAndReserve(t *testing.T) {
 	if err := st.UseEmulator("Other", ""); !errors.Is(err, ErrDeviceBusy) {
 		t.Fatalf("switching a held device = %v, want ErrDeviceBusy", err)
 	}
-	if ok, _ := st.TakeDevice("T-1", HolderYou); !ok {
+	if ok, _ := st.TakeDevice("T-1", HolderYou, PurposeTakenBack+"T-1"); !ok {
 		t.Fatal("take back")
 	}
 	if h, ok, _ := st.ReclaimStaleHolder(0, func(int) bool { return false }); ok {
 		t.Fatalf("reclaimed %q - the human's hold must never be reclaimed", h)
 	}
-	if ok, _ := st.ReserveDevice(); !ok {
+	if ok, _ := st.ReserveDevice(""); !ok {
 		t.Fatal("re-reserving your own device must succeed")
 	}
 	if ok, _ := st.ReleaseDevice(HolderYou); !ok {
@@ -215,5 +215,25 @@ func TestReclaimStaleTicketHolder(t *testing.T) {
 	}
 	if h, ok, _ := st.ReclaimStaleHolder(0, dead); !ok || h != "T-1" {
 		t.Fatalf("dead holder not reclaimed: %q %v", h, ok)
+	}
+}
+
+// Why you hold the device survives with the hold and is cleared with it.
+func TestHoldPurpose(t *testing.T) {
+	st := deviceStore(t)
+	_ = st.UseEmulator("Pixel_7", "emulator-5554")
+	if ok, _ := st.ReserveDevice(PurposeRunApp + "PLEX-12"); !ok {
+		t.Fatal("reserve")
+	}
+	if d := dev(t, st); d.RunAppTarget() != "PLEX-12" || d.TakenBackFrom() != "" {
+		t.Fatalf("purpose = %q", d.Purpose)
+	}
+	_ = st.SetHoldPurpose(PurposeTakenBack + "PLEX-9")
+	if d := dev(t, st); d.TakenBackFrom() != "PLEX-9" {
+		t.Fatalf("purpose = %q", d.Purpose)
+	}
+	_, _ = st.ReleaseDevice(HolderYou)
+	if d := dev(t, st); d.Purpose != "" || d.RunAppTarget() != "" {
+		t.Fatalf("released device kept purpose %q", d.Purpose)
 	}
 }

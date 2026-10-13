@@ -34,8 +34,7 @@ func (m monitorModel) deviceLine() deviceLine {
 	case d.State == store.DeviceStarting:
 		return deviceLine{name: d.AVD, middle: m.startProgressText(), phase: "starting", phaseSty: stAmber}
 	case d.Holder == store.HolderYou:
-		return deviceLine{name: m.deviceName(), middle: "reserved by you", phase: "in use by you", phaseSty: stCyan,
-			age: Age(time.Unix(d.AcquiredAt, 0))}
+		return m.youLine()
 	case d.Holder != "":
 		l := deviceLine{name: m.deviceName(), middle: d.Holder, phase: "in use by agent", phaseSty: stAmber,
 			age: Age(time.Unix(d.AcquiredAt, 0))}
@@ -133,6 +132,8 @@ func (m monitorModel) deviceHeaderStatus() string {
 		return stChrome.Render("○ " + d.AVD + " off")
 	case d.State == store.DeviceStarting:
 		return stAmber.Render("◐ " + d.AVD + " starting")
+	case d.Holder == store.HolderYou && d.RunAppTarget() != "":
+		return stCyan.Render("● " + m.deviceName() + " · Run app " + targetLabel(d.RunAppTarget()))
 	case d.Holder == store.HolderYou:
 		return stCyan.Render("● " + m.deviceName() + " · you")
 	case d.Holder != "":
@@ -188,6 +189,8 @@ func (m monitorModel) renderDeviceDetail(cw int) string {
 		switch {
 		case d.Kind == store.DeviceUSB && !attachedReady(sc.attached, d.Serial):
 			status = "not connected - plug it in and accept USB debugging"
+		case d.Holder == store.HolderYou && d.RunAppTarget() != "":
+			status = "running · Run app is using it"
 		case d.Holder == store.HolderYou:
 			status = "running · reserved by you"
 		case d.Holder != "":
@@ -209,6 +212,9 @@ func (m monitorModel) renderDeviceDetail(cw int) string {
 			}
 			kv("image", avdMeta(sc.info))
 			kv("up", Age(time.Unix(d.RunningAt, 0)))
+		}
+		if d.Holder == store.HolderYou {
+			m.renderYouHold(&b, cw, kv, section)
 		}
 		if s := m.holderSession(); s != nil {
 			section("AGENT", stAmber.Bold(true))
@@ -357,4 +363,105 @@ func (m monitorModel) deviceSectionLines() int {
 		return 4
 	}
 	return 3
+}
+
+// targetLabel names a Run app target: a ticket id, or the main checkout.
+func targetLabel(t string) string {
+	if t == "main" {
+		return "main checkout"
+	}
+	return t
+}
+
+// sessionFor finds a ticket's session among the dashboard's rows.
+func (m monitorModel) sessionFor(ticket string) *store.Session {
+	for i := range m.flat {
+		if m.flat[i].Ticket == ticket {
+			s := m.flat[i]
+			return &s
+		}
+	}
+	return nil
+}
+
+// youLine is the DEVICE row while you hold it: what for (Run app on which
+// ticket, or taken back from which agent), with that ticket's branch on the
+// row's second line - never a bare "reserved by you" when there is more to say.
+func (m monitorModel) youLine() deviceLine {
+	d := m.device.scan.dev
+	l := deviceLine{name: m.deviceName(), middle: "reserved by you", phase: "in use by you", phaseSty: stCyan,
+		age: Age(time.Unix(d.AcquiredAt, 0))}
+	ticket := ""
+	switch {
+	case d.RunAppTarget() != "":
+		t := d.RunAppTarget()
+		l.middle, l.phase = "Run app · "+targetLabel(t), "running app"
+		if t == "main" {
+			l.branch = m.device.scan.mainBranch
+		} else {
+			ticket = t
+		}
+	case d.TakenBackFrom() != "":
+		ticket = d.TakenBackFrom()
+		l.middle = "reserved by you · taken back from " + ticket
+	}
+	if s := m.sessionFor(ticket); s != nil {
+		if s.Summary != "" && d.RunAppTarget() != "" {
+			l.middle += " · " + s.Summary
+		}
+		l.branch = s.Branch
+	}
+	return l
+}
+
+// renderYouHold is the detail pane's block for a device you hold: the ticket
+// (or checkout), branch, worktree and - for Run app - the variant.
+func (m monitorModel) renderYouHold(b *strings.Builder, cw int, kv func(k, v string), section func(string, lipgloss.Style)) {
+	d := m.device.scan.dev
+	t, title := d.RunAppTarget(), "RUN APP"
+	if t == "" {
+		if t = d.TakenBackFrom(); t == "" {
+			return
+		}
+		title = "TAKEN BACK"
+	}
+	section(title, stCyan.Bold(true))
+	if t == "main" {
+		kv("code", "main checkout")
+		if br := m.device.scan.mainBranch; br != "" {
+			kv("branch", br)
+		}
+		if r := m.device.scan.mainRepo; r != "" {
+			kv("checkout", tildify(r))
+		}
+	} else {
+		label := t
+		s := m.sessionFor(t)
+		if s != nil && s.Summary != "" {
+			label += " · " + s.Summary
+		}
+		kv("ticket", label)
+		if s != nil {
+			if s.Branch != "" {
+				for i, seg := range wrapWords(s.Branch, cw-10) {
+					if i == 0 {
+						kv("branch", seg)
+					} else {
+						b.WriteString(strings.Repeat(" ", 10) + stTitle.Render(seg) + "\n")
+					}
+				}
+			}
+			wt := s.Worktree
+			if wt == "" {
+				wt = paths.WorktreeFor(s.Repo, s.Ticket)
+			}
+			kv("worktree", tildify(wt))
+		}
+	}
+	if ar := m.device.scan.appRun; d.RunAppTarget() != "" && ar.Target == t && ar.Variant != "" {
+		kv("variant", ar.Variant)
+	}
+	if d.TakenBackFrom() != "" {
+		b.WriteString(stChrome.Render(truncate("Resume "+t+" to put it back in the queue.", cw)) + "\n")
+	}
 }

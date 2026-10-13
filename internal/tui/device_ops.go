@@ -144,8 +144,9 @@ func (m monitorModel) takeBackCmd() tea.Cmd {
 // between), then parks the ticket - state written before the signal, like
 // Pause - and stops its run. Its own deferred release then no-ops.
 func takeBack(st *store.Store, s store.Session) {
-	if ok, _ := st.TakeDevice(s.Ticket, store.HolderYou); !ok {
-		_, _ = st.ReserveDevice()
+	purpose := store.PurposeTakenBack + s.Ticket
+	if ok, _ := st.TakeDevice(s.Ticket, store.HolderYou, purpose); !ok {
+		_, _ = st.ReserveDevice(purpose)
 	}
 	_ = st.SetState(s.Ticket, store.StateNeedsYou, s.Retries)
 	appendTicketLog(s.Ticket, fmt.Sprintf("[%s] needs-you: device taken back by you - Resume re-queues it for the device", s.Ticket))

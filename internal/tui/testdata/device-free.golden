@@ -17,13 +17,13 @@
         PIE-12                     Create a new text hello world                                  working                3h                                                 
                                                                                                                              A C T I O N S                                  
       P R   R E A D Y   F O R   R E V I E W · 1                                                                                Show emulator window                         
-        …LO-WORLD-TO-MAIN-ACTIVITY Add what's up man text below hello world text                                         2h    Restart                                      
-                                                                                                                               Switch to a different device                 
-      ▸ C L O S E D · 1                                                                                                        Stop                                         
+        …LO-WORLD-TO-MAIN-ACTIVITY Add what's up man text below hello world text                                         2h    ▶ Run app on this device                     
+                                                                                                                               Restart                                      
+      ▸ C L O S E D · 1                                                                                                        Switch to a different device                 
+                                                                                                                               Stop                                         
+      ▸ S T O P P E D · 1                                                                                                                                                   
+                                                                                                                             press enter to choose an action                
                                                                                                                                                                             
-      ▸ S T O P P E D · 1                                                                                                    press enter to choose an action                
-                                                                                                                                                                            
-
 
 
 

@@ -15,12 +15,12 @@
                                                                                                                                                             
       R U N N I N G · 1                                                                                                      A C T I O N S                  
         PIE-12                     Create a new text hello world                                  working                3h    Release to agents            
-                                                                                                                               Show emulator window         
-      P R   R E A D Y   F O R   R E V I E W · 1                                                                                Switch to a different device 
-        …LO-WORLD-TO-MAIN-ACTIVITY Add what's up man text below hello world text                                         2h    Stop                         
-                                                                                                                                                            
-      ▸ C L O S E D · 1                                                                                                      press enter to choose an action
-                                                                                                                                                            
+                                                                                                                               ▶ Run app on this device     
+      P R   R E A D Y   F O R   R E V I E W · 1                                                                                Show emulator window         
+        …LO-WORLD-TO-MAIN-ACTIVITY Add what's up man text below hello world text                                         2h    Switch to a different device 
+                                                                                                                               Stop                         
+      ▸ C L O S E D · 1                                                                                                                                     
+                                                                                                                             press enter to choose an action
       ▸ S T O P P E D · 1                                                                                                                                   
                                                                                                                                                             
 

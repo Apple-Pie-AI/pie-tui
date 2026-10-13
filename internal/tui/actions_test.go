@@ -71,7 +71,7 @@ func TestNeedsYouActionOrder(t *testing.T) {
 	}
 	// The change screen leads: reviewing the worktree is the row's most
 	// important action, everywhere it exists.
-	want := []actionID{actViewChange, actClaude, actStudio, actShip, actStop, actResume}
+	want := []actionID{actViewChange, actClaude, actStudio, actRunAppTicket, actShip, actStop, actResume}
 	if len(got) != len(want) {
 		t.Fatalf("needs-you actions = %v, want %v", got, want)
 	}

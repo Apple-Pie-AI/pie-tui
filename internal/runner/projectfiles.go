@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 )
@@ -64,4 +65,11 @@ func relProjectDir(worktree, projectDir string) string {
 		return ""
 	}
 	return rel
+}
+
+// EnsureProjectFiles makes a ticket's worktree buildable outside a run (Run
+// app): seeds the main checkout's git-ignored files and local.properties.
+// Returns the Gradle project dir inside the worktree.
+func EnsureProjectFiles(cfg *config.Config, repo *config.Repo, worktree string, logf func(string, ...interface{})) string {
+	return ensureProjectFiles(Task{Ticket: filepath.Base(worktree), Repo: repo, Cfg: cfg}, worktree, logFn(logf))
 }

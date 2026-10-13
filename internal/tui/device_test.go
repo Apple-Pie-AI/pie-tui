@@ -68,6 +68,26 @@ func deviceModel(state string) monitorModel {
 	case "you":
 		sc.dev = running
 		sc.dev.Holder, sc.dev.AcquiredAt = store.HolderYou, now-2*60
+	case "runapp", "takenback":
+		sc.dev = running
+		sc.dev.Holder, sc.dev.AcquiredAt = store.HolderYou, now-60
+		sc.dev.Purpose = store.PurposeRunApp + "PLEX-64818"
+		if state == "takenback" {
+			sc.dev.Purpose = store.PurposeTakenBack + "PLEX-64818"
+		}
+		sc.appRun = store.AppRun{Target: "PLEX-64818", Variant: "stagingDebug"}
+		for _, g := range m.groups {
+			if g.label == "NEEDS YOU" {
+				g.sessions = append(g.sessions, store.Session{Ticket: "PLEX-64818", Summary: "PR 14: task-form-ui",
+					Branch: holderBranch, Worktree: "/work/.pie/worktrees/PLEX-64818", State: store.StateNeedsYou,
+					UpdatedAt: time.Unix(now-60, 0)})
+			}
+		}
+		m.flat = nil
+		for _, g := range m.groups {
+			m.flat = append(m.flat, g.sessions...)
+		}
+		m.rows = buildRows(m.groups, m.expanded)
 	case "usb":
 		sc.dev = store.Device{Kind: store.DeviceUSB, Serial: "2A281FDH3001", State: store.DeviceRunning, RunningAt: now - 18*60}
 		sc.android = "14"
@@ -79,7 +99,7 @@ func deviceModel(state string) monitorModel {
 // The four states of the mockups, plus a USB phone and "reserved by you",
 // rendered whole. Run `go test ./internal/tui -update` to refresh.
 func TestGoldenDeviceStates(t *testing.T) {
-	for _, state := range []string{"none", "starting", "free", "agent", "you", "usb"} {
+	for _, state := range []string{"none", "starting", "free", "agent", "you", "usb", "runapp", "takenback"} {
 		t.Run(state, func(t *testing.T) {
 			m := deviceModel(state)
 			got := stripAnsi(m.View())
@@ -111,6 +131,11 @@ func TestDeviceStatesContent(t *testing.T) {
 			"worktrees/PLEX-64818", "verify · attempt 1", "N E X T   I N   L I N E", "PLEX-64905 · Empty state for notes tab",
 			"Open ticket PLEX-64818", "Take it back from the agent", "verifying on device", "waiting for device"},
 		"you": {"● Pixel_7_API_34 · you", "reserved by you", "Release to agents"},
+		// You hold it for a reason: the row and pane say which ticket and branch.
+		"runapp": {"● Pixel_7_API_34 · Run app PLEX-64818", "Run app · PLEX-64818 · PR 14: task-form-ui", "running app",
+			"branch " + holderBranch, "R U N   A P P", "worktrees/PLEX-64818", "stagingDebug", "Run app is using it"},
+		"takenback": {"● Pixel_7_API_34 · you", "taken back from PLEX-64818", "branch " + holderBranch,
+			"T A K E N   B A C K", "Resume PLEX-64818 to put it back in the queue"},
 		"usb": {"● Pixel 7 (USB) free", "connected · no agent is using it", "android", "2A281FDH3001", "Stop using this phone"},
 	} {
 		out := stripAnsi(deviceModel(state).View())

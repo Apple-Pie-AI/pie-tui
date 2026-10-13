@@ -27,6 +27,7 @@ const (
 	daTakeBack    = "take-back"
 	daRelease     = "release"
 	daForget      = "forget"
+	daRunApp      = "run-app"
 )
 
 type deviceAction struct {
@@ -41,6 +42,7 @@ func (m monitorModel) deviceActions() []deviceAction {
 	d := sc.dev
 	if d.Kind == store.DeviceUSB {
 		return []deviceAction{
+			{id: daRunApp, label: "▶ Run app on this device"},
 			{id: daSwitch, label: "Switch to a different device"},
 			{id: daForget, label: "Stop using this phone", danger: true},
 		}
@@ -61,6 +63,7 @@ func (m monitorModel) deviceActions() []deviceAction {
 	case d.Holder == store.HolderYou:
 		return []deviceAction{
 			{id: daRelease, label: "Release to agents"},
+			{id: daRunApp, label: "▶ Run app on this device"},
 			{id: daShow, label: "Show emulator window"},
 			{id: daSwitch, label: "Switch to a different device"},
 			{id: daStop, label: "Stop", danger: true},
@@ -75,6 +78,7 @@ func (m monitorModel) deviceActions() []deviceAction {
 	}
 	return []deviceAction{
 		{id: daShow, label: "Show emulator window"},
+		{id: daRunApp, label: "▶ Run app on this device"},
 		{id: daRestart, label: "Restart"},
 		{id: daSwitch, label: "Switch to a different device"},
 		{id: daStop, label: "Stop", danger: true},
@@ -165,6 +169,8 @@ func (m monitorModel) runDeviceAction(id string) (tea.Model, tea.Cmd) {
 		return busy("releasing…", m.releaseDeviceCmd())
 	case daForget:
 		return busy("", m.forgetDeviceCmd())
+	case daRunApp:
+		return m.openRunApp("")
 	case daOpenTicket:
 		m.device.focus = false
 		m.syncCursorTo(d.Holder)
