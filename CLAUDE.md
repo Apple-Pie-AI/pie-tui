@@ -43,6 +43,11 @@ positioning, not code - keep docs and comments honest about that line.
 - `internal/telemetry` - fire-and-forget PostHog events. `APIKey` is an ldflags var;
   the version is passed in by the caller, never duplicated as a package global.
 - `internal/paths` - `~/.pie` layout, and the shared worktree-readiness check.
+- `internal/workflows` - per-repo prompt customizations (`~/.pie/workflows/`) and the
+  localhost, token-guarded editor behind `pie workflows`; its page is one embedded
+  `web/index.html`. What a team may rewrite is the slot registry in `agent/slots.go` -
+  contract text never becomes a slot.
+- `internal/browser` - the one "open this file/URL" helper (`open` / `xdg-open`).
 - `internal/splash` - first-run "Apple Pie" title screen (`--splash` replays it).
 - `internal/sound` - chiptune cues for the splash: PCM synthesized in pure Go, played via the OS's own audio command. **No audio library** - the release is `CGO_ENABLED=0` cross-compiled, and every Go audio lib needs cgo.
 

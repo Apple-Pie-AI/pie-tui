@@ -39,6 +39,11 @@ type RunRepairInput struct {
 // BuildRunRepairPrompt asks the agent to fix how the app is run - and to say
 // so honestly when the project itself is broken.
 func BuildRunRepairPrompt(in RunRepairInput) string {
+	return Prompts{}.RunRepair(in)
+}
+
+// RunRepair is BuildRunRepairPrompt with this workflow's slots.
+func (p Prompts) RunRepair(in RunRepairInput) string {
 	argv := strings.Join(in.Failure.Argv, " ")
 	if argv == "" {
 		argv = "(not a single command)"
@@ -61,7 +66,7 @@ Last output lines:
 The current run recipe (what Apple Pie already knows):
 %s
 
-Investigate cheaply: read settings.gradle(.kts) and the module's build.gradle(.kts), run "./gradlew <module>:tasks --all", "java -version", "adb -s %s shell pm list packages". Run the build only if you must to prove a fix.
+%s%s
 
 Then write %s/.agent/run.json with exactly one of:
 - {"status":"ok", ...corrections...} when the problem is how the app is run. Corrections (omit what doesn't change):
@@ -77,7 +82,8 @@ Then write %s/.agent/run.json with exactly one of:
 - {"status":"blocked","explanation":"<why>","suggested_command":"<what the developer could run>"} when it needs a human or something destructive (wiping the device, clearing data, signing keys). Never uninstall, wipe or clear data yourself.`,
 		in.ProjectDir, in.Module, in.Variant, in.Serial, in.Serial,
 		in.Failure.Step, argv, in.Failure.ExitCode, explanationLine(in.Failure.Explanation),
-		indentBlock(in.Failure.Tail), indentBlock(in.RecipeJSON), in.Serial, in.ProjectDir)
+		indentBlock(in.Failure.Tail), indentBlock(in.RecipeJSON),
+		strings.ReplaceAll(p.slot(SlotRunInvestigate), "{serial}", in.Serial), p.extra("run"), in.ProjectDir)
 }
 
 func explanationLine(s string) string {

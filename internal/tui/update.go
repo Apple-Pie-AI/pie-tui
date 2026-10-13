@@ -329,6 +329,9 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notice = "daemon " + msg.action + "ed"
 		}
 		return m, nil
+	case workflowEditorMsg:
+		m.notice = workflowNotice(msg)
+		return m, nil
 	case planOpenedMsg:
 		if msg.err != nil {
 			m.notice = "view plan: " + msg.err.Error()

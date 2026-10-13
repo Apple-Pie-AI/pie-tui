@@ -1,6 +1,6 @@
 # Workflows in depth
 
-This page walks through each workflow Apple Pie runs, every gate along the way, the lifecycle states, and how review comments are handled.
+This page walks through each workflow Apple Pie runs, every gate along the way, the lifecycle states, and how review comments are handled. To change how a stage works (its prompt), see [customizing-workflows.md](customizing-workflows.md).
 
 ## The three workflows
 

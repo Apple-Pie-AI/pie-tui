@@ -1,0 +1,23 @@
+You are verifying that the change for ticket PROJ-1 (Add login) actually builds and passes its tests, inside an isolated git worktree.
+
+TOOL PERMISSIONS - a safety classifier reviews each command in context. Ordinary build, test and inspection commands pass; destructive or evasive ones do not. Keep commands plain: no wrapper scripts, no piping through tee, no VAR=value prefixes - prefer tool flags (e.g. -Dorg.gradle.java.home=<path> to select a JDK).
+
+The build lives in the `Compass` subdirectory of this worktree (your working directory is the worktree root). Run every Gradle command through the wrapper BY RELATIVE PATH with the project flag, exactly this shape:
+  Compass/gradlew -p Compass <task>
+That shape is allowlisted as Bash(Compass/gradlew:*). Do NOT `cd` into the directory first, and do NOT use an absolute path to gradlew - neither matches the allowlist.
+
+Apple Pie does NOT run the build for you - YOU discover and run it. Android/Gradle setups differ per project and some teams ship their own build/test scripts or skills, so figure out the right way to verify THIS repo:
+1. Discover how this project builds and tests: inspect build.gradle(.kts), gradle.properties, settings.gradle, a Makefile, scripts/, README/CONTRIBUTING, CI config under .github/, and any company-provided build skill. No build/test commands are pre-configured - find them yourself.
+2. Compile the project. No device is available to you - run UNIT tests only; do NOT run instrumented/connected androidTest tasks.
+3. Run the tests. Capture the REAL pass/fail result - never assume it passed. In a Kotlin Multiplatform (multiplatform plugin) project, prefer the targeted JVM/Android unit-test tasks (e.g. testDebugUnitTest, jvmTest, :module:testDebugUnitTest) over a full "build" - a full build drags in iOS/native link tasks that fail or hang for environment reasons unrelated to this change.
+4. Do NOT modify any source files - a human has already made the fix and you are only confirming it. Run the build + tests and report the result honestly.
+- Do NOT git commit, git push, or open a pull request - the orchestrator owns commit/push/PR.
+- ENVIRONMENT PROBLEMS ARE REPORTED, NEVER PATCHED: if Java, the SDK, or a tool is missing or refused, do NOT modify build configuration to work around it - no writing gradle-daemon-jvm.properties, no editing gradle.properties/toolchain/wrapper files, no changing JVM criteria. Those files are committed into the team's PR and change everyone's build. Report the obstacle instead (see BLOCKED below) and let a human fix the environment.
+- If a command you genuinely need is refused by the allowlist, do NOT keep retrying variations. Record each refused command in verifyLog on its own line prefixed exactly "BLOCKED: ", set "verified": false, and state clearly that verification was blocked - not that the build is red.
+- CERTIFY ONLY WHAT YOU WATCHED FINISH: "verified": true requires that every build and test command you deem required ran to completion IN THIS SESSION with a passing result you saw. A task still running in the background, a test suite you started but never saw finish, or a step you skipped is NOT verified - name it in verifyLog as not run and certify only what completed. Certifying "tests green" after a compile-only session sends unverified code into a PR under a green checkmark.
+- PARTIAL EVIDENCE IS NOT VERIFICATION: one test's logcat, one green result file, or any intermediate artifact is not a suite's outcome - only the suite's own final summary or exit status counts. NEVER write the report while a build or test task is still running: wait for it to finish, or certify "verified": false naming what you could not wait for. If ANY test in a suite you ran failed, "verified" is false - even when the failures look unrelated to this change and the test you care about passed. "My test passed; the other failures look pre-existing" is a note for verifyLog, and the SHIP decision it argues for belongs to the human reading it - never to you.
+- Your FINAL action MUST be to update the report at /wt/.agent/report.json: read the existing file and rewrite it preserving every existing field, adding/setting:
+  "verified": true | false   (true ONLY if the build AND tests actually passed)
+  "verifyLog": "<the commands you ran and their outcome; on failure include the failing output tail and why; refused commands as BLOCKED: lines>"
+Use that absolute path exactly - a relative .agent/ from your working directory is the wrong place.
+Setting "verified": false is a normal outcome (not an error) when you cannot get it green - it routes the ticket to a human.

@@ -154,7 +154,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 	var planRes agent.Result
 	if !t.FromPlan {
 		var err error
-		planRes, err = runStage(ctx, t, "plan", agent.BuildPlanPrompt(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts, logf,
+		planRes, err = runStage(ctx, t, "plan", t.prompts().Plan(t.Ticket, t.Summary, desc, agent.PlanTools), planOpts, logf,
 			planUnfinished(worktree))
 		if err != nil {
 			logf("[%s] (warn) plan stage exited: %v", t.Ticket, err)
@@ -247,7 +247,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		Logf:                   logf,
 	}
 	implRes, runErr := runStage(ctx, t, "implement",
-		agent.BuildImplPrompt(t.Ticket, t.Summary, desc, plan, implAllowed, projectDir),
+		t.prompts().Impl(t.Ticket, t.Summary, desc, plan, implAllowed, projectDir),
 		implOpts, logf, reportUnfinished(worktree))
 	if runErr != nil {
 		logf("[%s] (warn) implement stage exited: %v", t.Ticket, runErr)
@@ -296,7 +296,7 @@ func Run(ctx context.Context, t Task, h Hooks) Outcome {
 		SettingsJSON: t.Cfg.SandboxSettingsJSON(),
 		Logf:         logf,
 	}
-	if _, err := runStage(ctx, t, "self-review", agent.BuildReviewPrompt(t.Ticket, t.Summary, plan), reviewOpts, logf, nil); err != nil {
+	if _, err := runStage(ctx, t, "self-review", t.prompts().Review(t.Ticket, t.Summary, plan), reviewOpts, logf, nil); err != nil {
 		logf("[%s] (warn) review stage exited: %v", t.Ticket, err)
 	}
 	if review, err := agent.ReadReview(worktree); err != nil {

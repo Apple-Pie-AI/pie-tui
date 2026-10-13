@@ -69,20 +69,24 @@ func verifyDeviceRule(serial string) string {
 
 // BuildPlanPrompt is the instruction for the plan stage (read-only, strong model).
 func BuildPlanPrompt(ticketKey, summary, description, allowedTools string) string {
+	return Prompts{}.Plan(ticketKey, summary, description, allowedTools)
+}
+
+// Plan is BuildPlanPrompt with this workflow's slots.
+func (p Prompts) Plan(ticketKey, summary, description, allowedTools string) string {
 	desc := strings.TrimSpace(description)
 	if desc == "" {
 		desc = "(no description provided)"
 	}
 	return fmt.Sprintf(`Plan the implementation of a ticket in this Android codebase.
-Understand the code and produce your implementation plan however you see fit,
-using whatever tools and approach work best for you. Do NOT edit any source
+%s Do NOT edit any source
 files - this is a planning step only.
 
 %s
 
 TICKET %s: %s
 
-%s
+%s%s
 
 When your plan is ready, write it to .agent/plan.json (create the .agent directory if needed):
 {
@@ -93,8 +97,7 @@ When your plan is ready, write it to .agent/plan.json (create the .agent directo
   "needs_emulator": true | false
 }
 The fields besides "plan" drive the orchestrator:
-- questions: only genuine ambiguities that block safe implementation - prefer a
-  reasonable assumption over a question. Empty array = proceed without human input.
+- questions: %s Empty array = proceed without human input.
   If the human left "Plan feedback" in the ticket text, treat it as the priority:
   revise the plan to address it directly.
 - needs_emulator coordinates a shared Android emulator across tickets. Set it
@@ -106,11 +109,16 @@ The fields besides "plan" drive the orchestrator:
   only normal unit-test verification and should set this false, even though
   it "involves Compose." Set it false for domain logic, ViewModels,
   repositories, unit tests under test/, or pure Kotlin/Java changes.`,
-		stageRules(allowedTools), ticketKey, summary, desc)
+		p.slot(SlotPlanApproach), stageRules(allowedTools), ticketKey, summary, desc, p.extra("plan"), p.slot(SlotPlanQuestions))
 }
 
 // BuildImplPrompt is the instruction for the implement stage, injecting the approved plan.
 func BuildImplPrompt(ticketKey, summary, description string, plan *Plan, allowedTools, projectDir string) string {
+	return Prompts{}.Impl(ticketKey, summary, description, plan, allowedTools, projectDir)
+}
+
+// Impl is BuildImplPrompt with this workflow's slots.
+func (p Prompts) Impl(ticketKey, summary, description string, plan *Plan, allowedTools, projectDir string) string {
 	desc := strings.TrimSpace(description)
 	if desc == "" {
 		desc = "(no description provided)"
@@ -121,7 +129,7 @@ func BuildImplPrompt(ticketKey, summary, description string, plan *Plan, allowed
 	if len(plan.Steps) > 0 {
 		planBlock += "\n\nIMPLEMENTATION STEPS:\n" + strings.Join(plan.Steps, "\n")
 	}
-	return fmt.Sprintf(`You are an autonomous Android engineer implementing a pre-approved plan inside an isolated git worktree (your current working directory).
+	return fmt.Sprintf(`%s inside an isolated git worktree (your current working directory).
 
 %s
 
@@ -133,10 +141,10 @@ APPROVED PLAN:
 %s
 
 Rules:
-- Follow the approved plan above. Make the focused, minimal change described.
+- %s
 - This is an Android/Gradle project. A later verification step will build the project and run its tests - write code that compiles and passes.%s
 - Do NOT git push and do NOT open a pull request - the orchestrator handles commit, push, and PR.
-- PR description: check whether this repo has a pull request template (.github/PULL_REQUEST_TEMPLATE.md, .github/pull_request_template.md, or docs/PULL_REQUEST_TEMPLATE.md). If one exists, fill it out for THIS change: EVERY heading, section, and checklist item MUST appear in prBody, in the same order. Never drop a section - fill each one with real content about THIS change. Keep every checklist item exactly as written: tick the boxes that apply, leave the rest unticked. Do not add sections, filler text, or commentary not in the template. Put the finished markdown in "prBody". If there is NO template, set "prBody" to "".
+- PR description: %s If there is NO template, set "prBody" to "".%s
 - Your FINAL action MUST be to write .agent/report.json (create the .agent directory if needed):
 {
   "status": "ready_for_build" | "needs_human",
@@ -147,7 +155,8 @@ Rules:
   "prBody": "<repo PR template filled in, or \"\" if the repo has none>"
 }
 Use "needs_human" if you hit an unexpected blocker you cannot resolve safely.`,
-		stageRules(allowedTools), ticketKey, summary, desc, planBlock, implWhere(projectDir))
+		p.slot(SlotImplPersona), stageRules(allowedTools), ticketKey, summary, desc, planBlock,
+		p.slot(SlotImplRules), implWhere(projectDir), p.slot(SlotImplPRBody), p.extra("implement"))
 }
 
 // implWhere names the project subdirectory in the implement prompt, or nothing
@@ -165,7 +174,12 @@ func implWhere(projectDir string) string {
 // gradle attempts trying to "verify" before adapting, because nothing told it
 // builds are out of scope here.
 func BuildReviewPrompt(ticketKey, summary string, plan *Plan) string {
-	return fmt.Sprintf(`You are a senior Android code reviewer adversarially reviewing changes made for ticket %s: %s
+	return Prompts{}.Review(ticketKey, summary, plan)
+}
+
+// Review is BuildReviewPrompt with this workflow's slots.
+func (p Prompts) Review(ticketKey, summary string, plan *Plan) string {
+	return fmt.Sprintf(`%s changes made for ticket %s: %s
 
 The approved plan was: %s
 
@@ -176,11 +190,8 @@ This is a STATIC review: do NOT try to build or run tests - a separate verify st
 Instructions:
 1. Run "git diff HEAD" to see all changes made in this worktree.
 2. Review for:
-   - Correctness: does the change actually solve the ticket as planned?
-   - Scope: did the agent change more than the plan described?
-   - Android conventions: proper Kotlin idioms, no deprecated APIs, correct threading?
-   - Safety: nullability issues, resource leaks, or crash risks?
-3. Be an adversarial reviewer - only pass if the change is genuinely good.
+%s
+3. %s%s
 
 Your ONLY write action is to create .agent/review.json:
 {
@@ -189,7 +200,8 @@ Your ONLY write action is to create .agent/review.json:
 }
 Use "pass" if the change correctly implements the plan with no significant issues.
 Use "fix" with a list of specific problems that must be corrected.`,
-		ticketKey, summary, plan.Plan, toolPermissionsBlock(ReviewTools))
+		p.slot(SlotReviewPersona), ticketKey, summary, plan.Plan, toolPermissionsBlock(ReviewTools),
+		p.slot(SlotReviewCriteria), p.slot(SlotReviewStrictness), p.extra("self-review"))
 }
 
 // BuildReviewFixPrompt feeds self-review issues back into the implement session.
@@ -206,6 +218,11 @@ Issues to fix:
 // the implementation session (context still holds the plan and the edits), so
 // it carries only the notes and the contract reminder.
 func BuildChangeReworkPrompt(feedback string, round int) string {
+	return Prompts{}.Rework(feedback, round)
+}
+
+// Rework is BuildChangeReworkPrompt with this workflow's slots.
+func (p Prompts) Rework(feedback string, round int) string {
 	return fmt.Sprintf(`The repository owner reviewed your local change before creating a pull request
 (this is round %d of that review) and asks for the following. "@path" and
 "@path:line" tokens are already worktree-relative paths (and, where given, a
@@ -214,13 +231,12 @@ just read them:
 
 %s
 
-Revise the code in this worktree accordingly. The smallest change that
-satisfies each note - no commit, no push, no pull request; the owner ships
-only after another review.
+Revise the code in this worktree accordingly. %s - no commit, no push, no pull request; the owner ships
+only after another review.%s
 
 Then rewrite .agent/report.json: read the existing file and update "summary"
 and "filesChanged" for the change AS IT NOW STANDS, preserving every other
-field ("prBody" especially) exactly.`, round, strings.TrimSpace(feedback))
+field ("prBody" especially) exactly.`, round, strings.TrimSpace(feedback), p.slot(SlotReworkPolicy), p.extra("rework"))
 }
 
 // BuildChangeDiscussPrompt is the change-review gate's Plan-mode round: the
@@ -258,6 +274,11 @@ Answer directly, in your own voice, as if replying to the person who asked:
 // .agent contract must be named by absolute path - a relative ".agent/" would
 // land inside the project dir where the orchestrator never looks.
 func BuildVerifyPrompt(ticketKey, summary, worktree, serial string, allowFix bool, allowedTools, projectDir, adbPath string) string {
+	return Prompts{}.Verify(ticketKey, summary, worktree, serial, allowFix, allowedTools, projectDir, adbPath)
+}
+
+// Verify is BuildVerifyPrompt with this workflow's slots.
+func (p Prompts) Verify(ticketKey, summary, worktree, serial string, allowFix bool, allowedTools, projectDir, adbPath string) string {
 	device := "No device is available to you - run UNIT tests only; do NOT run instrumented/connected androidTest tasks."
 	if serial != "" {
 		device = verifyDeviceRule(serial)
@@ -285,7 +306,7 @@ func BuildVerifyPrompt(ticketKey, summary, worktree, serial string, allowFix boo
 %s
 %s
 Apple Pie does NOT run the build for you - YOU discover and run it. Android/Gradle setups differ per project and some teams ship their own build/test scripts or skills, so figure out the right way to verify THIS repo:
-1. Discover how this project builds and tests: inspect build.gradle(.kts), gradle.properties, settings.gradle, a Makefile, scripts/, README/CONTRIBUTING, CI config under .github/, and any company-provided build skill. No build/test commands are pre-configured - find them yourself.
+1. %s
 2. Compile the project. %s
 3. Run the tests. Capture the REAL pass/fail result - never assume it passed. In a Kotlin Multiplatform (multiplatform plugin) project, prefer the targeted JVM/Android unit-test tasks (e.g. testDebugUnitTest, jvmTest, :module:testDebugUnitTest) over a full "build" - a full build drags in iOS/native link tasks that fail or hang for environment reasons unrelated to this change.
 %s
@@ -293,11 +314,12 @@ Apple Pie does NOT run the build for you - YOU discover and run it. Android/Grad
 - ENVIRONMENT PROBLEMS ARE REPORTED, NEVER PATCHED: if Java, the SDK, or a tool is missing or refused, do NOT modify build configuration to work around it - no writing gradle-daemon-jvm.properties, no editing gradle.properties/toolchain/wrapper files, no changing JVM criteria. Those files are committed into the team's PR and change everyone's build. Report the obstacle instead (see BLOCKED below) and let a human fix the environment.
 - If a command you genuinely need is refused by the allowlist, do NOT keep retrying variations. Record each refused command in verifyLog on its own line prefixed exactly "BLOCKED: ", set "verified": false, and state clearly that verification was blocked - not that the build is red.
 - CERTIFY ONLY WHAT YOU WATCHED FINISH: "verified": true requires that every build and test command you deem required ran to completion IN THIS SESSION with a passing result you saw. A task still running in the background, a test suite you started but never saw finish, or a step you skipped is NOT verified - name it in verifyLog as not run and certify only what completed. Certifying "tests green" after a compile-only session sends unverified code into a PR under a green checkmark.
-- PARTIAL EVIDENCE IS NOT VERIFICATION: one test's logcat, one green result file, or any intermediate artifact is not a suite's outcome - only the suite's own final summary or exit status counts. NEVER write the report while a build or test task is still running: wait for it to finish, or certify "verified": false naming what you could not wait for. If ANY test in a suite you ran failed, "verified" is false - even when the failures look unrelated to this change and the test you care about passed. "My test passed; the other failures look pre-existing" is a note for verifyLog, and the SHIP decision it argues for belongs to the human reading it - never to you.
+- PARTIAL EVIDENCE IS NOT VERIFICATION: one test's logcat, one green result file, or any intermediate artifact is not a suite's outcome - only the suite's own final summary or exit status counts. NEVER write the report while a build or test task is still running: wait for it to finish, or certify "verified": false naming what you could not wait for. If ANY test in a suite you ran failed, "verified" is false - even when the failures look unrelated to this change and the test you care about passed. "My test passed; the other failures look pre-existing" is a note for verifyLog, and the SHIP decision it argues for belongs to the human reading it - never to you.%s
 - Your FINAL action MUST be to update the report at %s: read the existing file and rewrite it preserving every existing field, adding/setting:
   "verified": true | false   (true ONLY if the build AND tests actually passed)
   "verifyLog": "<the commands you ran and their outcome; on failure include the failing output tail and why; refused commands as BLOCKED: lines>"
 Use that absolute path exactly - a relative .agent/ from your working directory is the wrong place.
 Setting "verified": false is a normal outcome (not an error) when you cannot get it green - it routes the ticket to a human.`,
-		ticketKey, summary, toolPermissionsBlock(allowedTools), whereBuilds, device, fixRule, reportPath)
+		ticketKey, summary, toolPermissionsBlock(allowedTools), whereBuilds, p.slot(SlotVerifyApproach), device, fixRule,
+		p.extra("verify"), reportPath)
 }

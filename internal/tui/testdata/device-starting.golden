@@ -6,6 +6,7 @@
         Checkout a branch               check out an existing branch into a pie worktree                                                                                                
         Edit config                     allowlist, repo, branch, budgets                                                                                                                
         Edit models                     which Claude model runs each stage                                                                                                              
+        Customize workflows             each stage's prompt, in your browser                                                                                                            
                                                                                                                              Pixel_7_API_34                                             
       D E V I C E                                                                                                            starting                                                   
       ▸ Pixel_7_API_34             starting… 96%                                                  starting                   ██████████████████████████████████████████████████████░░░  
@@ -23,7 +24,6 @@
                                                                                                                                                                                         
       ▸ S T O P P E D · 1                                                                                                                                                               
                                                                                                                                                                                         
-
 
 
 

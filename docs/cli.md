@@ -14,6 +14,7 @@ pie logs PROJ-123             # print the session log for a ticket
 pie status                    # table of all sessions (--watch to follow)
 pie start                     # background cleanup daemon (--once for a single pass)
 pie stop                      # stop the daemon
+pie workflows                 # customize each stage's prompt in your browser (--repo, --no-open)
 pie --splash                  # replay the title screen
 ```
 

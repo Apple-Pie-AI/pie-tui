@@ -101,7 +101,7 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 	// report just below the threshold and make a genuinely fresh one look stale.
 	stageStart := time.Now().Truncate(time.Second)
 	res, err := runStage(ctx, t, "verify",
-		agent.BuildVerifyPrompt(t.Ticket, t.Summary, worktree, serial, allowFix, allowed, projectDir, adbPath),
+		t.prompts().Verify(t.Ticket, t.Summary, worktree, serial, allowFix, allowed, projectDir, adbPath),
 		vOpts, logf, reportUnfinished(worktree))
 	if err != nil {
 		logf("[%s] (warn) verify stage exited: %v", t.Ticket, err)

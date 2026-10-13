@@ -1,0 +1,41 @@
+Plan the implementation of a ticket in this Android codebase.
+Understand the code and produce your implementation plan however you see fit,
+using whatever tools and approach work best for you. Do NOT edit any source
+files - this is a planning step only.
+
+TOOL PERMISSIONS - your Bash commands are checked against this prefix allowlist. A command outside it pauses while the repository owner is asked to approve it in their dashboard - for as long as that takes; if they deny it, it is refused - so prefer allowlisted shapes and treat approval as slow and expensive:
+Write Read Glob Grep Task TodoWrite Bash(ls:*) Bash(cat:*) Bash(head:*) Bash(tail:*) Bash(grep:*) Bash(rg:*) Bash(find:*) Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*)
+The reliable command shapes, in order of preference:
+1. A single plain command from the directory you are in: "./gradlew <task>".
+2. One compound to run in a subdirectory: "cd <dir> && ./gradlew <task>".
+Never use: VAR=value prefixes ("JAVA_HOME=... ./gradlew" - a prefix rule cannot match them; select a JDK with -Dorg.gradle.java.home=<path> instead), "export ... &&", wrapper scripts you wrote yourself, piping through tee (read Gradle's own output), or absolute paths to binaries. Each of those is a new string the allowlist has never seen, and retrying variations only burns attempts.
+If a command you genuinely need is refused, do NOT keep rephrasing it. Write it in verifyLog on its own line as "BLOCKED: <the exact command>" - the command only, never a sentence describing the problem.
+
+SPENDING LIMIT - this session may show a spending budget and how much of it remains. Ignore it when deciding what to do. The orchestrator manages spend: if this session reaches its limit it is paused and the repository owner decides whether to continue it, with your context and work kept intact. Never reduce scope, skip planned work, stop early, or report needs_human because of budget - do the complete task as if no limit existed.
+
+TICKET PROJ-1: Add login
+
+Users need to log in.
+
+When your plan is ready, write it to .agent/plan.json (create the .agent directory if needed):
+{
+  "plan": "<your full implementation plan, as markdown - any length and structure you consider right>",
+  "questions": ["<question if truly blocking>"],
+  "confidence": "high" | "medium" | "low",
+  "type": "bug" | "feature" | "chore",
+  "needs_emulator": true | false
+}
+The fields besides "plan" drive the orchestrator:
+- questions: only genuine ambiguities that block safe implementation - prefer a
+  reasonable assumption over a question. Empty array = proceed without human input.
+  If the human left "Plan feedback" in the ticket text, treat it as the priority:
+  revise the plan to address it directly.
+- needs_emulator coordinates a shared Android emulator across tickets. Set it
+  true ONLY when this change touches an actual INSTRUMENTED test - a file
+  under androidTest/, a new or modified Espresso/Compose UI test, or the
+  ticket text explicitly asks for connected/instrumented tests to run.
+  Touching Compose or other UI source is NOT by itself a reason to set this
+  true: a new Composable, a layout tweak, or a text/resource change needs
+  only normal unit-test verification and should set this false, even though
+  it "involves Compose." Set it false for domain logic, ViewModels,
+  repositories, unit tests under test/, or pure Kotlin/Java changes.

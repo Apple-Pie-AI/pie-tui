@@ -277,6 +277,7 @@ Most people never set an Anthropic key at all — leaving it blank uses your log
 ├── templates/pr_body.tmpl       PR body template — edit to taste
 ├── templates/jira_comment.tmpl  Jira comment template
 ├── templates/plan_comment.tmpl  plan comment template
+├── workflows/<repo>-<hash>.json your customized stage prompts (pie workflows)
 ├── pasted/<ID>/                 tickets written in the TUI, plus any images
 ├── daemon.pid                   single-instance guard for `pie start`
 ├── daemon.log                   daemon output

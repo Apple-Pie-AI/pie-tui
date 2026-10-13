@@ -13,12 +13,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
+	"github.com/Apple-Pie-AI/pie-tui/internal/browser"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
 )
@@ -75,11 +75,7 @@ func openPlanMD(s store.Session) tea.Cmd {
 				return planOpenedMsg{err: err}
 			}
 		}
-		opener := "xdg-open"
-		if runtime.GOOS == "darwin" {
-			opener = "open"
-		}
-		if err := exec.Command(opener, path).Start(); err != nil {
+		if err := browser.Open(path); err != nil {
 			return planOpenedMsg{path: path, err: err}
 		}
 		return planOpenedMsg{path: path}
