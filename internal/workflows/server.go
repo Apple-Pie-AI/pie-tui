@@ -21,7 +21,7 @@ import (
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
 )
 
-//go:embed web/index.html
+//go:embed web/index.html web/app.css web/app.js
 var web embed.FS
 
 // IdleTimeout shuts the editor down when nobody has used it for this long.
@@ -86,6 +86,8 @@ func (s *Server) Serve(ctx context.Context, ready func(url string)) error {
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.page)
+	mux.HandleFunc("GET /app.css", s.asset("web/app.css", "text/css; charset=utf-8"))
+	mux.HandleFunc("GET /app.js", s.asset("web/app.js", "text/javascript; charset=utf-8"))
 	mux.HandleFunc("GET /api/state", s.api(s.state))
 	mux.HandleFunc("POST /api/preview", s.api(s.preview))
 	mux.HandleFunc("PUT /api/workflows", s.api(s.save))
@@ -119,8 +121,18 @@ func (s *Server) page(w http.ResponseWriter, _ *http.Request) {
 	b, _ := web.ReadFile("web/index.html")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'unsafe-inline'; frame-ancestors 'none'")
+	w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'")
 	_, _ = w.Write(b)
+}
+
+// asset serves one embedded file (no token: it is the page's own code).
+func (s *Server) asset(name, ctype string) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		b, _ := web.ReadFile(name)
+		w.Header().Set("Content-Type", ctype)
+		w.Header().Set("Cache-Control", "no-store")
+		_, _ = w.Write(b)
+	}
 }
 
 type apiFn func(r *http.Request) (any, int, error)
@@ -163,13 +175,14 @@ type stageView struct {
 }
 
 type stateView struct {
-	Repos  []string            `json:"repos"`
-	Repo   string              `json:"repo"`
-	File   string              `json:"file"`
-	Slots  []agent.Slot        `json:"slots"`
-	Saved  map[string]string   `json:"saved"`
-	Stages []stageView         `json:"stages"`
-	Lint   map[string][]string `json:"lint"`
+	Repos     []string            `json:"repos"`
+	Repo      string              `json:"repo"`
+	File      string              `json:"file"`
+	Slots     []agent.Slot        `json:"slots"`
+	Saved     map[string]string   `json:"saved"`
+	Stages    []stageView         `json:"stages"`
+	Workflows []Workflow          `json:"workflows"`
+	Lint      map[string][]string `json:"lint"`
 }
 
 // view renders every stage with these slot texts.
@@ -203,7 +216,7 @@ func (s *Server) stateFor(repo string) (any, int, error) {
 	}
 	stages, lint := view(saved)
 	return stateView{Repos: s.repos, Repo: repo, File: tilde(paths.WorkflowsFor(repo)), Slots: agent.Slots,
-		Saved: saved, Stages: stages, Lint: lint}, http.StatusOK, nil
+		Saved: saved, Stages: stages, Workflows: Workflows, Lint: lint}, http.StatusOK, nil
 }
 
 type slotsReq struct {

@@ -2,7 +2,7 @@
 
 Every stage of a workflow is a prompt that Apple Pie sends to Claude Code. You can rewrite the parts of those prompts that describe *how* your team works: how to plan, your coding rules, what self-review checks, where verify finds your build, how replies to reviewers read. You can't add stages or remove the parts Apple Pie relies on to track a run.
 
-![The workflow editor](assets/workflow-editor.png)
+![The workflows home](assets/workflows-home.png)
 
 ## Opening the editor
 
@@ -13,12 +13,29 @@ The editor is a page served by `pie` on `127.0.0.1` only. Its link carries a one
 
 ## What you see
 
-- **The stage rail.** Plan → Implement → Self-review → Verify → PR → Review comments, plus the on-demand stages Change rework and Run app repair. PR has no prompt, because Apple Pie commits, pushes and opens the PR itself. Each stage shows `default`, how many sections you've customized, or `● unsaved`.
-- **The stage, block by block, in the order the agent reads it:**
-  - **✎ Editable sections**, with their built-in text pre-filled. Edit them, use **reset to default**, or **undo unsaved**.
-  - **Extra team instructions**, an empty section on every stage. Anything you write there goes under a `TEAM INSTRUCTIONS for this stage:` heading, placed before the stage's output contract.
-  - **🔒 Locked sections**, collapsed, which you can expand to read.
-- **The preview.** The exact prompt the agent receives, built by the same code a run uses, for a sample ticket. Your text is highlighted. Click it to jump to its section.
+**Workflows.** The first screen lists the workflows Apple Pie runs. Each card shows its steps and how many of its prompts you've customized:
+
+- **Ticket → pull request**
+- **Review comments**
+- **Request changes**
+- **Run app**
+
+**The graph.** Open a workflow to see its steps as a graph, loops included:
+
+- **◉ Agent steps** run on a prompt. Open one to read and edit it.
+- **◆ Your decisions** are where Apple Pie waits for you.
+- **▢ Automatic steps** are done by Apple Pie itself, such as commit, push and PR, or build and install.
+
+Verify appears in three workflows. It is one prompt, so an edit there applies to all of them.
+
+![A workflow and one of its prompts](assets/workflow-editor.png)
+
+**The prompt.** Click an agent step to see its whole prompt, top to bottom, exactly as the agent receives it (for a sample ticket):
+
+- **🔒 Locked text** reads in place.
+- **✎ Editable sections** sit where they appear in the prompt, with their current text in the box. Edit them, use **reset to default**, or **undo** unsaved edits.
+- **Extra team instructions** is an empty box on every editable step. Anything you write there goes under a `TEAM INSTRUCTIONS for this stage:` heading, placed before the step's output contract.
+- **Fixed steps** (Fix round, Revise fixes, Discuss) carry only your feedback and the contract around it. You can read them, but there is nothing to edit.
 
 Save with **Save changes** or <kbd>⌘S</kbd>. The next run of that repo uses the saved workflow; a run already in progress keeps the prompts it started with.
 
@@ -30,9 +47,9 @@ Save with **Save changes** or <kbd>⌘S</kbd>. The next run of that repo uses th
 | Implement | Engineer persona · Coding rules · PR description · Extra team instructions |
 | Self-review | Reviewer persona · What to review for · How strict to be · Extra team instructions |
 | Verify | How to find the build · Extra team instructions |
-| Review comments | Engineer persona · How much to change · When to push back · Reply voice · Extra team instructions |
-| Change rework | How much to change · Extra team instructions |
-| Run app repair | How to investigate (`{serial}` becomes the device serial) · Extra team instructions |
+| Review comments: Fix comments | Engineer persona · How much to change · When to push back · Reply voice · Extra team instructions |
+| Request changes: Rework | How much to change · Extra team instructions |
+| Run app: Repair | How to investigate (`{serial}` becomes the device serial) · Extra team instructions |
 
 ## What stays locked, and why
 

@@ -28,17 +28,23 @@ type Stage struct {
 	ID    string `json:"id"`
 	Title string `json:"title"`
 	Blurb string `json:"blurb"`
+	// Fixed stages carry only your feedback and the contract around it, so
+	// the editor shows them read-only and they take no team instructions.
+	Fixed bool `json:"fixed,omitempty"`
 }
 
-// Stages are the workflow's prompt-driven steps, in pipeline order.
+// Stages are every prompt Apple Pie sends an agent.
 var Stages = []Stage{
-	{"plan", "Plan", "Reads the ticket and the code, then writes plan.json: the plan, any blocking questions, and whether it needs the emulator."},
-	{"implement", "Implement", "Edits the code in the ticket's worktree to the approved plan and writes report.json. A self-review fix round resumes this session."},
-	{"self-review", "Self-review", "Reads the diff without building and decides pass or fix. Fix sends its issues back to Implement."},
-	{"verify", "Verify", "Discovers and runs this project's own build and tests on the reserved device, then certifies the result in report.json."},
-	{"comments", "Review comments", "Addresses the PR's review comments in its worktree and drafts a reply to each reviewer."},
-	{"rework", "Change rework", "Revises the local change after you review it, before any PR exists."},
-	{"run", "Run app repair", "When a Run app step fails, finds out why and tells Apple Pie how to run the app - without touching the code."},
+	{"plan", "Plan", "Reads the ticket and the code, then writes plan.json: the plan, any blocking questions, and whether it needs the emulator.", false},
+	{"implement", "Implement", "Edits the code in the ticket's worktree to the approved plan and writes report.json.", false},
+	{"self-review", "Self-review", "Reads the diff without building and decides pass or fix.", false},
+	{"review-fix", "Fix round", "Sends self-review's issues back to the implementation session to fix. It carries only the issues and the report.json reminder.", true},
+	{"verify", "Verify", "Discovers and runs this project's own build and tests on the reserved device, then certifies the result in report.json.", false},
+	{"comments", "Fix comments", "Addresses the PR comments you picked in its worktree, locally, and drafts a reply to each reviewer.", false},
+	{"comment-revise", "Revise fixes", "Sends your request-changes feedback on the previewed fixes back to the same session. It carries only your words and the file reminders.", true},
+	{"discuss", "Discuss", "Answers your questions about the change in plan mode - it cannot edit. It carries only your message.", true},
+	{"rework", "Rework", "Revises the local change to your feedback, then the change is verified again.", false},
+	{"run", "Repair", "When a Run app step fails, finds out why and tells Apple Pie how to run the app - without touching the code.", false},
 }
 
 // MaxSlotLen caps one slot's text.
@@ -124,6 +130,9 @@ about your process.`},
 			if s.Stage == st.ID {
 				out = append(out, s)
 			}
+		}
+		if st.Fixed {
+			continue
 		}
 		out = append(out, Slot{st.ID + extraSuffix, st.ID, teamInstructionsTitle,
 			"Anything else this stage should know: house rules, tools, what to avoid. Added under TEAM INSTRUCTIONS.", ""})

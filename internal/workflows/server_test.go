@@ -130,7 +130,7 @@ func TestServeLoopback(t *testing.T) {
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if !strings.Contains(string(body), "X-Pie-Token") {
+	if !strings.Contains(string(body), "/app.js") {
 		t.Error("page not served")
 	}
 	cancel()

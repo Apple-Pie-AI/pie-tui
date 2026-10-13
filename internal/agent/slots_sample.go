@@ -20,6 +20,12 @@ func (p Prompts) Sample(stage string) string {
 		return p.CommentFix(key, summary, "main", "", []ReviewComment{{ID: "2219", Author: "reviewer",
 			Path: "app/src/main/java/feed/FeedScreen.kt", Line: 88, Body: "Could the retry button reuse our PrimaryButton?",
 			DiffHunk: "@@ -85,3 +85,6 @@\n+    Button(onClick = onRetry) {\n+        Text(\"Retry\")\n+    }"}})
+	case "review-fix":
+		return BuildReviewFixPrompt([]string{"FeedViewModel.retry() is never covered by a test.", "ErrorView hardcodes \"Retry\" instead of using a string resource."})
+	case "comment-revise":
+		return BuildCommentRevisePrompt("Keep PrimaryButton, but pass the existing retry icon to it.")
+	case "discuss":
+		return BuildChangeDiscussPrompt("Why did you put the retry state in the ViewModel and not the repository?")
 	case "rework":
 		return p.Rework("Rename @app/src/main/java/feed/FeedScreen.kt:91 onRetry to onRetryClick.", 1)
 	case "run":
