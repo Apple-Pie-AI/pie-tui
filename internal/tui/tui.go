@@ -133,6 +133,9 @@ type monitorModel struct {
 	// modelChecks are the models screen's background checks, keyed by model
 	// name and kept for the session (editmodels_options.go).
 	modelChecks map[string]modelCheckState
+
+	// The DEVICE section (device_state.go): one device, one agent at a time.
+	device deviceState
 }
 
 // answerState is the answer-and-resume overlay, which pre-empts whatever view is
@@ -296,7 +299,9 @@ func tick() tea.Cmd {
 // Init arms both loops: the 1Hz local store refresh, and the much slower
 // GitHub review-comment poll. They are separate on purpose - the fast one must
 // never make a network call, and the slow one is a gh subprocess per open PR.
-func (m monitorModel) Init() tea.Cmd { return tea.Batch(tick(), reviewTick()) }
+func (m monitorModel) Init() tea.Cmd {
+	return tea.Batch(tick(), reviewTick(), deviceTick(), m.scanCmd())
+}
 
 func (m *monitorModel) reload() {
 	sessions, err := m.store.List()
@@ -329,8 +334,8 @@ func (m *monitorModel) reload() {
 	m.groups = groups
 	m.flat = flat
 	m.rows = buildRows(groups, m.expanded)
-	if m.cursor > len(m.rows)+2 { // 0=Start-new 1=Start-from-branch 2=Edit-config list=3..len(rows)+2
-		m.cursor = len(m.rows) + 2
+	if last := m.lastRowIdx(); m.cursor > last {
+		m.cursor = last
 	}
 }
 

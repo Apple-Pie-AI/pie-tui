@@ -95,7 +95,7 @@ func TestMonkeyStorm(t *testing.T) {
 		"palette": func() monitorModel {
 			m := dashModel()
 			m.view, m.paletteAgentOnly = viewPalette, true
-			m.cursor = len(dashCommands)
+			m.cursor = listStart()
 			return m
 		},
 	}
@@ -143,7 +143,7 @@ func TestEscUnwindsEverything(t *testing.T) {
 	}
 	for i, opens := range openers {
 		m := dashModel()
-		m.cursor = len(dashCommands)
+		m.cursor = listStart()
 		for _, k := range opens {
 			got, _ := m.Update(k)
 			m = got.(monitorModel)

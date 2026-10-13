@@ -102,6 +102,8 @@ func (m monitorModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 		return m, nil
+	case deviceTickMsg, deviceScannedMsg, deviceOpMsg:
+		return m.handleDeviceMsg(msg)
 	case tickMsg:
 		m.reload()
 		if m.view == viewChange {
@@ -393,6 +395,9 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case viewChange:
 		return m.updateChange(msg)
 	}
+	if m.device.capturing() {
+		return m.updateDevice(msg)
+	}
 	switch msg.String() {
 	case "q", "esc":
 		return m, tea.Quit
@@ -401,7 +406,7 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.cursor--
 		}
 	case "down", "j":
-		if m.cursor < len(m.rows)+2 { // 0=Start-new 1=Start-from-branch 2=Edit-config list=3..
+		if m.cursor < m.lastRowIdx() {
 			m.cursor++
 		}
 	case ":":
@@ -415,17 +420,11 @@ func (m monitorModel) dispatchKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "c":
 		return m.doAction(actClaude)
 	case "enter":
-		if m.cursor == 0 {
-			return m.doAction(actRun)
+		if m.cursor < len(dashCommands) {
+			return m.doAction(dashCommands[m.cursor].act)
 		}
-		if m.cursor == 1 {
-			return m.doAction(actRunFromBranch)
-		}
-		if m.cursor == 2 {
-			return m.doAction(actConfig)
-		}
-		if m.cursor == 3 {
-			return m.doAction(actModels)
+		if m.onDeviceRow() {
+			return m.focusDevice()
 		}
 		// A collapsible section header folds/unfolds on Enter. The cursor stays
 		// put: the header's own index never moves, since toggling only inserts

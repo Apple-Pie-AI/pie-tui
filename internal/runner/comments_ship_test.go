@@ -609,7 +609,7 @@ func TestVerifyCannotRewriteThePRBody(t *testing.T) {
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	task := Task{Ticket: "K-1", Repo: &config.Repo{Path: wt}, Cfg: &config.Config{}}
-	rep, verified, _, _, _ := verifyWithAgent(t.Context(), task, wt, "", false, true, "",
+	rep, verified, _, _, _ := verifyWithAgent(t.Context(), task, wt, "", "", true, "",
 		func(string, ...interface{}) {}, func(string, int) {})
 	if rep == nil || !verified {
 		t.Fatalf("verify should have produced a verified report, got %+v", rep)

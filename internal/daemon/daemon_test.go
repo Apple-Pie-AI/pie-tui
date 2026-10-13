@@ -5,9 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
-	"time"
 
-	"github.com/Apple-Pie-AI/pie-tui/internal/config"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/store"
 )
@@ -20,115 +18,71 @@ func daemonStore(t *testing.T) *store.Store {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	if err := st.RegisterEmulator("avd"); err != nil {
-		t.Fatal(err)
-	}
-	if err := st.MarkEmulatorReady("avd"); err != nil {
+	if err := st.UseEmulator("avd", "emulator-5554"); err != nil {
 		t.Fatal(err)
 	}
 	return st
 }
 
-// swapLeaseGrace drops the "don't second-guess a fresh lease" window. Without
-// it a just-taken lease is never reclaimed and these tests pass vacuously.
-func swapLeaseGrace(d time.Duration) func() {
-	old := store.LeaseGrace
-	store.LeaseGrace = d
-	return func() { store.LeaseGrace = old }
-}
-
-func busyState(t *testing.T, st *store.Store) string {
+// holdDevice queues ticket (driven by pid) and gives it the device.
+func holdDevice(t *testing.T, st *store.Store, ticket string, pid int) {
 	t.Helper()
-	s, _, err := st.EmulatorState("avd")
+	_, _ = st.Claim(ticket, "/r", "x")
+	_ = st.SetState(ticket, store.StateBuilding, 0)
+	_ = st.SetPID(ticket, pid)
+	_ = st.SetDeviceWait(ticket)
+	if ok, _ := st.AcquireDevice(ticket, func(int) bool { return true }); !ok {
+		t.Fatal("setup: ticket should take the device")
+	}
+}
+
+func holder(t *testing.T, st *store.Store) string {
+	t.Helper()
+	d, err := st.ActiveDevice()
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s
+	return d.Holder
 }
 
-// The daemon is the only reclaimer when nobody is waiting. A run killed with
-// SIGKILL never reaches its deferred release, and the idle reaper below only
-// looks at `ready` rows - so before this existed, a busy row with a dead holder
-// was invisible to the janitor and every later ticket queued behind it forever.
-func TestReclaimStaleLeasesFreesADeadHolder(t *testing.T) {
+// The daemon is the reclaimer of last resort: a run killed with SIGKILL never
+// reaches its deferred release, and without this the next ticket in line
+// would wait out its whole budget behind a dead holder.
+func TestReclaimDeviceFreesADeadHolder(t *testing.T) {
 	st := daemonStore(t)
-	_, _ = st.Claim("DEAD-1", "/r", "x")
-	_ = st.SetState("DEAD-1", store.StateBuilding, 0) // still claims to be running…
-	_ = st.SetPID("DEAD-1", 0)                        // …but nothing is driving it
-	if ok, _ := st.AcquireEmulator("avd", "DEAD-1"); !ok {
-		t.Fatal("setup: holder should take the lease")
-	}
-	defer swapLeaseGrace(0)()
-
-	reclaimStaleLeases(st, &config.Config{AVDName: "avd"})
-
-	if got := busyState(t, st); got != store.EmulatorReady {
-		t.Errorf("state = %q after reclaim, want ready - the AVD is still stranded", got)
+	holdDevice(t, st, "DEAD-1", 0) // claims to be running, nothing drives it
+	old := store.LeaseGrace
+	store.LeaseGrace = 0
+	defer func() { store.LeaseGrace = old }()
+	reclaimDevice(st)
+	if h := holder(t, st); h != "" {
+		t.Fatalf("holder = %q, want the device freed", h)
 	}
 }
 
-// …and it must not touch a lease whose holder is alive and working.
-func TestReclaimStaleLeasesLeavesALiveHolder(t *testing.T) {
+func TestReclaimDeviceLeavesALiveHolder(t *testing.T) {
 	st := daemonStore(t)
-	_, _ = st.Claim("LIVE-1", "/r", "x")
-	_ = st.SetState("LIVE-1", store.StateBuilding, 0)
-	_ = st.SetPID("LIVE-1", 1) // pid 1 always exists
-	_, _ = st.AcquireEmulator("avd", "LIVE-1")
-
-	reclaimStaleLeases(st, &config.Config{AVDName: "avd"})
-
-	if got := busyState(t, st); got != store.EmulatorBusy {
-		t.Errorf("state = %q, want busy - the daemon stole a lease from a running ticket", got)
+	holdDevice(t, st, "LIVE-1", os.Getpid())
+	reclaimDevice(st)
+	if h := holder(t, st); h != "LIVE-1" {
+		t.Fatalf("holder = %q, a live run must keep the device", h)
 	}
 }
 
-// No AVD configured means there is nothing to reclaim; it must not panic or
-// touch anything.
-func TestReclaimStaleLeasesWithoutAnAVD(t *testing.T) {
+// The daemon never stops the device - the user is in control of emulators -
+// and a human's hold is never reclaimed.
+func TestDaemonLeavesTheDeviceAlone(t *testing.T) {
 	st := daemonStore(t)
-	reclaimStaleLeases(st, &config.Config{})
-}
-
-// Reclaiming must NOT refresh last_used_at. It runs immediately before the idle
-// reaper, and a fresh stamp would tell that reaper the AVD had just been used -
-// buying an abandoned emulator a whole extra idle timeout instead of shutting it
-// down on the same poll.
-func TestReclaimDoesNotRefreshTheIdleTimer(t *testing.T) {
-	st := daemonStore(t)
-	before, err := st.EmulatorLastUsed("avd")
-	if err != nil {
-		t.Fatal(err)
+	if ok, _ := st.ReserveDevice(); !ok {
+		t.Fatal("reserve")
 	}
-	// last_used_at has one-second granularity, so setup and reclaim must land in
-	// different seconds or a re-stamp is invisible and this test passes whatever
-	// the code does. (Verified: without the wait, swapping the reclaim back to
-	// ReleaseEmulator - which does re-stamp - still passed.)
-	time.Sleep(1100 * time.Millisecond)
-
-	_, _ = st.Claim("DEAD-1", "/r", "x")
-	_ = st.SetState("DEAD-1", store.StateStopped, 0)
-	_, _ = st.AcquireEmulator("avd", "DEAD-1")
-	defer swapLeaseGrace(0)()
-
-	reclaimStaleLeases(st, &config.Config{AVDName: "avd"})
-	if got := busyState(t, st); got != store.EmulatorReady {
-		t.Fatalf("setup: reclaim did not run (state %q), so this test would pass vacuously", got)
-	}
-
-	after, err := st.EmulatorLastUsed("avd")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if after != before {
-		t.Errorf("last_used_at moved %d → %d; the idle reaper will now wait a full "+
-			"timeout before killing an emulator nobody is using", before, after)
+	reclaimDevice(st)
+	d, _ := st.ActiveDevice()
+	if d.State != store.DeviceRunning || d.Holder != store.HolderYou {
+		t.Fatalf("device = %+v, the daemon must not touch it", d)
 	}
 }
 
-// mergeCheckable decides which rows the daemon asks GitHub about: every idle
-// row with a PR - not just review, which left needs-you/failed/stopped rows
-// with merged PRs parked forever - and never an active row, whose state has
-// exactly one writer (the live pipeline).
 func TestMergeCheckable(t *testing.T) {
 	idle := []string{
 		store.StateReview, store.StateNeedsYou, store.StateAwaiting,

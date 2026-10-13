@@ -67,7 +67,7 @@ General coding agents don't know what verifying an Android change means. Apple P
 
 - **Your build, not a guess.** The agent discovers how *your* project builds and tests — Gradle tasks, multi-module and KMP projects, company build scripts — runs them for real, and self-certifies the result in a report Apple Pie checks for freshness, so a crashed run can't leave a stale "it passed" behind.
 - **Unit vs. instrumented tests.** Decided at plan time, enforced at verify time.
-- **Emulator coordination.** The SDK and AVD are auto-detected, and parallel agents take turns on the emulator through a shared lock, so no two agents fight over a device. The background daemon shuts it down when it's been idle.
+- **One device, one agent at a time.** The dashboard's DEVICE section shows the emulator (always windowed) or USB phone Apple Pie uses, and which ticket's agent is on it right now: ticket, branch and worktree, plus who's next in line. Start it, switch it, or take it back from an agent from there or with `pie devices`. See [docs/devices.md](docs/devices.md).
 - **Android Studio handoff.** Open any agent's worktree in the IDE, and your hand-edits there count: the change is re-verified before it ships.
 
 ## Install
@@ -247,7 +247,7 @@ Telemetry is opt-in, asked once during `pie init`. When enabled it sends three e
 | A run fails immediately | `pie doctor` — it's almost always `gh` or `claude` auth |
 | A ticket is stuck or vanished | `pie logs <TICKET>` has the full session. `pie status` shows every state |
 | A ticket landed in NEEDS YOU | Read the reason in the TUI, fix it in `~/.pie/worktrees/<TICKET>`, then `pie run <TICKET> --resume` |
-| Verification skips instrumented tests | `pie doctor` — `avd_name` is probably unset, so it fell back to unit tests |
+| Verification skips instrumented tests | The dashboard's DEVICE row (or `pie devices`): no device was available, or the ticket's turn didn't come within 20 minutes, so it fell back to unit tests |
 | A worktree is wedged | Choose **Stop & clean up** from its menu in the TUI, then re-run |
 | `go.mod requires go >= 1.26.2` | Building from source with an older Go: prefix with `GOTOOLCHAIN=auto` |
 
@@ -271,7 +271,7 @@ Go 1.26.2 or newer. On an older toolchain, prefix with `GOTOOLCHAIN=auto` and Go
 - [docs/configuration.md](docs/configuration.md) — the full config reference
 - [docs/permissions.md](docs/permissions.md) — the command allowlist, rule syntax, and approvals
 - [docs/jira.md](docs/jira.md) — connecting Jira
-- [docs/architecture.md](docs/architecture.md) — packages, the agent contract, worktrees, the emulator semaphore
+- [docs/architecture.md](docs/architecture.md) — packages, the agent contract, worktrees, the one-device queue ([docs/devices.md](docs/devices.md))
 - [RELEASE.md](RELEASE.md) — building release binaries and cutting a release
 
 ## Uninstall

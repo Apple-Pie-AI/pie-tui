@@ -238,7 +238,7 @@ func TestTestsLineNeverOverclaims(t *testing.T) {
 // T7.2 - the verify prompt carries the watched-to-completion certification
 // contract, so an agent cannot honestly certify a suite it never saw finish.
 func TestVerifyPromptCertificationContract(t *testing.T) {
-	p := agent.BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Bash(ls:*)", "", "")
+	p := agent.BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Bash(ls:*)", "", "")
 	for _, want := range []string{
 		"CERTIFY ONLY WHAT YOU WATCHED FINISH",
 		"ran to completion IN THIS SESSION",

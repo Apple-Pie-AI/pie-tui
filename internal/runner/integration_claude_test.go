@@ -121,7 +121,7 @@ func TestIntegrationMonorepoVerifyStartsAndCertifies(t *testing.T) {
 	task := Task{Ticket: "PLEX-1", Summary: "integration", Repo: &config.Repo{Path: proj}, Cfg: cfg}
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
-	rep, verified, sid, denials, errText := verifyWithAgent(ctx, task, wt, "", false, false, "", logf, func(string, int) {})
+	rep, verified, sid, denials, errText := verifyWithAgent(ctx, task, wt, "", "", false, "", logf, func(string, int) {})
 	joined := strings.Join(logs, "\n")
 	t.Logf("claude %s\n%s", v, joined)
 

@@ -103,7 +103,7 @@ func TestVerifyLaunchFailureNamesStderr(t *testing.T) {
 	deadClaude(t, fieldStderr)
 
 	task := Task{Ticket: "K-8", Repo: &config.Repo{Path: wt}, Cfg: &config.Config{}}
-	rep, verified, _, denials, errText := verifyWithAgent(t.Context(), task, wt, "", false, true, "",
+	rep, verified, _, denials, errText := verifyWithAgent(t.Context(), task, wt, "", "", true, "",
 		func(string, ...interface{}) {}, func(string, int) {})
 	if rep != nil || verified || len(denials) != 0 {
 		t.Fatalf("rep=%v verified=%v denials=%v, want nothing certified", rep, verified, denials)

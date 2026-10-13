@@ -61,7 +61,7 @@ func TestPhaseColourReplacesTheGlyph(t *testing.T) {
 func TestRowsCarryNoGlyphs(t *testing.T) {
 	m := baseModel()
 	m.width, m.height = 120, 30
-	m.cursor = len(dashCommands) // on the ticket, so the selected styling renders too
+	m.cursor = listStart() // on the ticket, so the selected styling renders too
 	m.groups = newGroups()
 	for _, s := range []store.Session{
 		{Ticket: "PIE-9", State: "review", ShortDesc: "add a subtitle"},
@@ -282,16 +282,18 @@ func TestReloadGrouping(t *testing.T) {
 	if m.selected() != nil {
 		t.Error("cursor 2 (Edit-config row) should select no agent")
 	}
-	// Cursor 3 selects the first agent.
-	m.cursor = len(dashCommands)
+	// The first row after the commands and the DEVICE row selects the first agent.
+	m.cursor = listStart()
 	if m.selected() == nil || m.selected().Ticket != m.flat[0].Ticket {
 		t.Error("the first row after the commands should select the first agent")
 	}
-	// Clamp: max cursor is len(flat)+2 (three pinned rows + N agents).
+	// Clamp: the last reachable row is the last ticket - every command row,
+	// the DEVICE row, then the list. (This used to hardcode three command
+	// rows, so after a fourth was added the last ticket was unreachable.)
 	m.cursor = 99
 	m.reload()
-	if m.cursor != 7 {
-		t.Errorf("cursor not clamped: %d, want 7", m.cursor)
+	if want := listStart() + len(m.rows) - 1; m.cursor != want {
+		t.Errorf("cursor not clamped: %d, want %d", m.cursor, want)
 	}
 }
 
@@ -403,7 +405,7 @@ func TestExactlyOneRowIsFilled(t *testing.T) {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 	t.Cleanup(func() { lipgloss.SetColorProfile(termenv.Ascii) })
 
-	for _, cursor := range []int{0, 1, 2, len(dashCommands), len(dashCommands) + 1} {
+	for _, cursor := range []int{0, 1, 2, deviceRowIdx(), listStart(), listStart() + 1} {
 		m.cursor = cursor
 		filled := 0
 		for _, ln := range strings.Split(m.renderDashboardBody(120), "\n") {

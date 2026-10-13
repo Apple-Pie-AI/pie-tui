@@ -408,7 +408,7 @@ func TestEnterOnSectionHeaderToggles(t *testing.T) {
 		m.flat = append(m.flat, g.sessions...)
 	}
 	m.rows = buildRows(m.groups, m.expanded)
-	m.cursor = len(dashCommands) // the CLOSED header is the only list row
+	m.cursor = listStart() // the CLOSED header is the only list row
 
 	got, _ := m.dispatchKey(tea.KeyMsg{Type: tea.KeyEnter})
 	hub := got.(monitorModel)
@@ -445,7 +445,7 @@ func TestEnterOnCommentedPROpensTheMenu(t *testing.T) {
 		PRURL: "https://x/pull/1", OpenComments: 3}}
 	m.groups = newGroups()
 	m.rows = flatRows(1)
-	m.cursor = len(dashCommands)
+	m.cursor = listStart()
 
 	got, _ := m.dispatchKey(tea.KeyMsg{Type: tea.KeyEnter})
 	hub := got.(monitorModel)
@@ -469,7 +469,7 @@ func TestEnterOnFixReviewOpensTheMenu(t *testing.T) {
 	m.flat = []store.Session{{Ticket: "K-2", State: store.StateFixReview}}
 	m.groups = newGroups()
 	m.rows = flatRows(1)
-	m.cursor = len(dashCommands)
+	m.cursor = listStart()
 
 	got, _ := m.dispatchKey(tea.KeyMsg{Type: tea.KeyEnter})
 	hub := got.(monitorModel)

@@ -231,18 +231,18 @@ func resumeShip(ctx context.Context, t Task, h Hooks) Outcome {
 	report, _ := agent.ReadReport(worktree)
 
 	// Boot + acquire the emulator only if the original plan needed instrumented tests.
-	needsEmu, releaseEmu := acquireForRun(ctx, t, plan, logf)
+	serial, releaseEmu := acquireForRun(ctx, t, plan, logf)
 	defer releaseEmu()
 
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}
 	anthropicKey := t.AnthropicKey
-	logf("[%s] verify (resume): agent will run build + tests on your changes (emulator=%v)", t.Ticket, needsEmu)
+	logf("[%s] verify (resume): agent will run build + tests on your changes (device=%s)", t.Ticket, orNone(serial))
 
 	// The human already fixed the code; the agent only RUNS the build + tests to
 	// confirm it (allowFix=false - it never edits) and self-certifies in report.json.
-	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", needsEmu, false, anthropicKey, logf, setState)
+	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", serial, false, anthropicKey, logf, setState)
 	// A cancelled verify produces no report; without this it would read as "still
 	// red" and park the ticket in NEEDS YOU on the way out.
 	if out, done := stopped(ctx, t, logf); done {

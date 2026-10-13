@@ -15,7 +15,6 @@ import (
 
 	"github.com/Apple-Pie-AI/pie-tui/internal/agent"
 	"github.com/Apple-Pie-AI/pie-tui/internal/config"
-	// Aliased: verifyWithAgent's `emulator bool` parameter shadows the name.
 	emusdk "github.com/Apple-Pie-AI/pie-tui/internal/emulator"
 	"github.com/Apple-Pie-AI/pie-tui/internal/git"
 	"github.com/Apple-Pie-AI/pie-tui/internal/paths"
@@ -32,7 +31,7 @@ import (
 // refused - the stream's permission_denials merged with the BLOCKED: lines
 // older claude CLIs leave in verifyLog.
 func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
-	emulator, allowFix bool, anthropicKey string,
+	serial string, allowFix bool, anthropicKey string,
 	logf func(string, ...interface{}), setState func(string, int)) (*agent.Report, bool, string, []agent.Denial, string) {
 
 	// Nothing below may run on a cancelled run, and the reason is the very first
@@ -94,6 +93,7 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 		ResumeID:               sessionID,
 		SettingsJSON:           t.Cfg.SandboxSettingsJSON(),
 		AndroidSDKRoot:         sdkRoot,
+		ExtraEnv:               serialEnv(serial),
 		Logf:                   logf,
 	}
 	newSession := sessionID
@@ -101,7 +101,7 @@ func verifyWithAgent(ctx context.Context, t Task, worktree, sessionID string,
 	// report just below the threshold and make a genuinely fresh one look stale.
 	stageStart := time.Now().Truncate(time.Second)
 	res, err := runStage(ctx, t, "verify",
-		agent.BuildVerifyPrompt(t.Ticket, t.Summary, worktree, emulator, allowFix, allowed, projectDir, adbPath),
+		agent.BuildVerifyPrompt(t.Ticket, t.Summary, worktree, serial, allowFix, allowed, projectDir, adbPath),
 		vOpts, logf, reportUnfinished(worktree))
 	if err != nil {
 		logf("[%s] (warn) verify stage exited: %v", t.Ticket, err)
@@ -359,4 +359,12 @@ func denialNeedsYou(t Task, h Hooks, worktree string, denials []agent.Denial) Ou
 	h.setState()(store.StateNeedsYou, 0)
 	h.comment(header + "\n\n" + permissionExplanation(denials, rules, t.Ticket, worktree))
 	return Outcome{State: store.StateNeedsYou}
+}
+
+// serialEnv pins the agent's adb and Gradle to the device it was given.
+func serialEnv(serial string) []string {
+	if serial == "" {
+		return nil
+	}
+	return []string{"ANDROID_SERIAL=" + serial}
 }

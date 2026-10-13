@@ -52,7 +52,7 @@ func TestVerifyAgentRunsAtWorktreeRootWithDerivedGradlewRule(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	task := Task{Ticket: "K-2", Repo: &config.Repo{Path: proj}, Cfg: &config.Config{}}
-	verifyWithAgent(t.Context(), task, wt, "", false, true, "",
+	verifyWithAgent(t.Context(), task, wt, "", "", true, "",
 		func(string, ...interface{}) {}, func(string, int) {})
 
 	cwd, err := os.ReadFile(filepath.Join(wt, ".agent", "cwd.txt"))
@@ -91,7 +91,7 @@ func TestVerifyUsesConfiguredVerifyModel(t *testing.T) {
 
 	run := func(cfg *config.Config) string {
 		task := Task{Ticket: "K-4", Repo: &config.Repo{Path: wt}, Cfg: cfg}
-		verifyWithAgent(t.Context(), task, wt, "", false, true, "",
+		verifyWithAgent(t.Context(), task, wt, "", "", true, "",
 			func(string, ...interface{}) {}, func(string, int) {})
 		argv, err := os.ReadFile(filepath.Join(wt, ".agent", "argv.txt"))
 		if err != nil {
@@ -127,7 +127,7 @@ func TestVerifyResumeFlagFollowsSessionID(t *testing.T) {
 
 	run := func(sessionID string) string {
 		task := Task{Ticket: "K-5", Repo: &config.Repo{Path: wt}, Cfg: &config.Config{}}
-		verifyWithAgent(t.Context(), task, wt, sessionID, false, true, "",
+		verifyWithAgent(t.Context(), task, wt, sessionID, "", true, "",
 			func(string, ...interface{}) {}, func(string, int) {})
 		argv, err := os.ReadFile(filepath.Join(wt, ".agent", "argv.txt"))
 		if err != nil {
@@ -217,7 +217,7 @@ func TestVerifyAgentRootProjectGetsNoDerivedRule(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 
 	task := Task{Ticket: "K-3", Repo: &config.Repo{Path: wt}, Cfg: &config.Config{}}
-	verifyWithAgent(t.Context(), task, wt, "", false, true, "",
+	verifyWithAgent(t.Context(), task, wt, "", "", true, "",
 		func(string, ...interface{}) {}, func(string, int) {})
 
 	cwd, err := os.ReadFile(filepath.Join(wt, ".agent", "cwd.txt"))

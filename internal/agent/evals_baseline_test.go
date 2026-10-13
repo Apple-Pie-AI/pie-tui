@@ -75,7 +75,7 @@ func TestEvalBaselinePromptGaps(t *testing.T) {
 	// Flipped after PR B: every gap is now filled.
 	plan := BuildPlanPrompt("T-1", "s", "d", PlanTools)
 	impl := BuildImplPrompt("T-1", "s", "d", &Plan{Plan: "p"}, "Bash(x:*)", "")
-	verify := BuildVerifyPrompt("T-1", "s", "/wt", false, true, "Bash(x:*)", "", "")
+	verify := BuildVerifyPrompt("T-1", "s", "/wt", "", true, "Bash(x:*)", "", "")
 
 	checks := []struct {
 		name, prompt, marker string

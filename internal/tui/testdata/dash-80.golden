@@ -4,8 +4,11 @@
 
     Start new ticket(s)             from Jira, or a description you type      
     Checkout a branch               check out an existing branch into a pie w…
-    Edit config                     allowlist, repo, branch                   
+    Edit config                     allowlist, repo, branch, budgets          
     Edit models                     which Claude model runs each stage        
+
+  D E V I C E
+    No device running  agents can't verify on a device                        
 
   N E E D S   Y O U · 1
   ▸ PIE-14             Review pull request                                  4h
@@ -26,9 +29,6 @@
 
   L A S T   O U T P U T
   ┆ (no log output yet)
-
-
-
 
   ────────────────────────────────────────────────────────────────────────────
   ↑↓ move   enter menu   esc quit                                   : commands

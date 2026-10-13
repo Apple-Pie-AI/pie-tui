@@ -17,13 +17,13 @@ internal/
   agent             drives `claude -p`
                     agent.go (subprocess + stream-json) · contract.go (the .agent/ JSON
                     contract and its readers) · prompts.go (the prompt corpus)
-  store             SQLite: session state + the emulator semaphore
-                    store.go (schema) · sessions.go · emulator.go · states.go
+  store             SQLite: session state + the active device and its queue
+                    store.go (schema) · sessions.go · device.go · device_queue.go · states.go
   daemon            the poll loop behind `pie start`/`stop`
   ticket            local .md ticket parsing, id derivation, pasted tickets
   git               worktree-per-ticket, branches, commit, push
   vcs               `gh` pull requests, PR body + comment templating
-  emulator          Android SDK/AVD manager — boot/wait/kill, and no build at all
+  emulator          Android SDK/AVD + device manager — list (by serial), windowed launch, stop; no build at all
   jira              Jira Cloud REST: fetch issue, add comment
   config            ~/.pie/config.toml
   secrets           OS keychain + env fallback
@@ -191,7 +191,7 @@ For monorepos, the configured repo path's offset from `git rev-parse --show-topl
 
 ## State
 
-`internal/store` is SQLite through `modernc.org/sqlite` — a pure-Go driver, so the binary stays cgo-free. Two tables, `sessions` (keyed by ticket) and `emulators` (keyed by AVD name), opened with `journal_mode=WAL` and `busy_timeout=5000` because several processes hold the file at once.
+`internal/store` is SQLite through `modernc.org/sqlite` — a pure-Go driver, so the binary stays cgo-free. The main tables are `sessions` (keyed by ticket) and the single-row `active_device`, opened with `journal_mode=WAL` and `busy_timeout=5000` because several processes hold the file at once.
 
 Cross-process safety rests on conditional writes rather than locks:
 
@@ -199,28 +199,24 @@ Cross-process safety rests on conditional writes rather than locks:
 -- claiming a ticket: only one caller wins
 INSERT INTO sessions … ON CONFLICT(ticket) DO NOTHING;
 
--- winning the right to boot the emulator
-UPDATE emulators SET state='booting' WHERE avd_name=? AND state='idle';
+-- winning the right to launch the active emulator: exactly one launcher
+UPDATE active_device SET state='starting', pid=? WHERE id=1 AND avd=? AND state='off';
 
--- announcing it is up: cannot touch a row somebody is holding
-UPDATE emulators SET state='ready' WHERE avd_name=? AND state IN ('idle','booting');
-
--- taking the emulator for a verify run
-UPDATE emulators SET state='busy', holder=? WHERE avd_name=? AND state='ready';
+-- taking the device for a verify run: only when free, and only for the
+-- oldest live waiter (sessions.device_wait_since, checked just before)
+UPDATE active_device SET holder=? WHERE id=1 AND state='running' AND holder='';
 
 -- handing it back: only the holder can
-UPDATE emulators SET state='ready', holder='' WHERE avd_name=? AND state='busy' AND holder=?;
+UPDATE active_device SET holder='' WHERE id=1 AND holder=?;
 ```
 
-Each returns `RowsAffected`, and losing means someone else got there first. The boot loser kills its own orphaned emulator process. That's the whole emulator semaphore — parallel agents queue for one AVD instead of racing for it.
+Each returns `RowsAffected`, and losing means someone else got there first. That's the whole golden rule: **one device, one agent at a time**, with tickets queued first come, first served. A holder of `you` is the human (taken back from an agent, or reserved), and it is never reclaimed. See [devices.md](devices.md) for what the dashboard shows.
 
-The last two predicates are what make it exclusive rather than advisory. Marking an AVD *ready* and *releasing a lease* look like the same UPDATE and used to be the same function — so a runner starting while a peer was mid-verify flipped that peer's `busy` row to `ready`, blanked the holder, and both runs then drove one emulator. They are now separate statements with disjoint guards.
+### Reclaiming the device
 
-### Reclaiming a lease
+A hold has no expiry, because the store cannot tell a long Gradle run from a dead runner. Instead the holder is checked for liveness, by the same rule `pie run` uses to refuse a second run on a ticket: the holder's session must still be in a running state **and** its recorded pid must answer. Either failure means the hold leaked (the driver was killed before its deferred release, or its pid was recycled), and any waiter, the dashboard's scan or the daemon hands it back. A two-minute grace period keeps a hold taken moments ago from being second-guessed before its holder has recorded its own pid. Waiters whose run died are dropped from the queue the same way.
 
-A lease has no expiry, because the store cannot tell a long Gradle run from a dead runner. Instead the holder is checked for liveness, by the same rule `pie run` uses to refuse a second run on a ticket: the holder's session must still be in a running state **and** its recorded pid must answer. A terminal state with a live pid means the pid was recycled; a running state with a dead pid means the driver was killed before its deferred release. Either way the lease is leaked, and any waiter — or the daemon, when nobody is waiting — hands it back. A two-minute grace period keeps a lease taken moments ago from being second-guessed before its holder has finished recording its own pid.
-
-Waiting is bounded: after 20 minutes a run stops waiting and verifies with unit tests only, rather than blocking on an AVD it may never get.
+Waiting is bounded: after 20 minutes a run stops waiting and verifies with unit tests only, rather than blocking on a device it may never get.
 
 The lifecycle states are listed in [workflows.md](workflows.md#lifecycle-states). One note for readers of the code: `StateTesting` is declared in the enum but never written by anything. It only appears in `IsActive`'s allowlist.
 
@@ -230,11 +226,12 @@ The lifecycle states are listed in [workflows.md](workflows.md#lifecycle-states)
 
 `pie start` is a janitor, not a scheduler. **It does not poll Jira** — ticket intake is always `pie run` or the TUI. (Its `--help` text used to say otherwise.)
 
-Every `poll_interval` seconds, one single-goroutine loop does three things:
+Every `poll_interval` seconds, one single-goroutine loop does two things:
 
 1. For each session in `review` with a PR URL, ask `gh pr view <url> --json state`. On `MERGED` or `CLOSED`, remove the worktree and record the state.
-2. Reclaim the emulator lease if its holder is gone (a SIGKILLed run never reaches its deferred release). This runs *before* the next step, so a reclaimed AVD can be shut down on the same poll.
-3. If the AVD has been `ready` and untouched for `emulator_idle_timeout` minutes, kill it.
+2. Reclaim the device if its holder's run is gone (a SIGKILLed run never reaches its deferred release), and drop dead tickets from the device queue.
+
+It never starts or stops the device. Emulators are windowed and the user is in control of them.
 
 A pidfile at `~/.pie/daemon.pid` enforces a single instance. `pie stop` verifies via `ps -p <pid> -o comm=` that the recorded PID is actually a `pie` process before signalling it, so a recycled PID can't get SIGTERM'd.
 
@@ -263,7 +260,7 @@ Known limit: `pie run A B C` drives three tickets from one process and records o
 | `claude` | Every agent stage. Also a 30-second `--model haiku` one-shot for the dashboard's short descriptions |
 | `git` | Worktrees, branches, commit, push |
 | `gh` | `pr create`, `pr view` for the URL and later for the state |
-| `emulator` / `adb` | `-list-avds`, headless boot, and polling `sys.boot_completed` |
+| `emulator` / `adb` | `-list-avds`, windowed launch, `adb devices -l`, per-serial `emu avd name` / `getprop sys.boot_completed` / `emu kill` |
 | `security` | macOS keychain read/write — no cgo, no dependency |
 | `osascript` | Opening a Terminal running `claude` |
 | `studio`, `open`, `xdg-open` | IDE and plan-file handoff |

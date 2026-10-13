@@ -121,10 +121,10 @@ func shipComments(ctx context.Context, t Task, h Hooks) Outcome {
 		logf("[%s] no .agent/plan.json in the worktree - verifying without an emulator; "+
 			"instrumented tests this ticket planned will not run", t.Ticket)
 	}
-	needsEmu, releaseEmu := acquireForRun(ctx, t, plan, logf)
+	serial, releaseEmu := acquireForRun(ctx, t, plan, logf)
 	defer releaseEmu()
 
-	logf("[%s] verify: agent will run build + tests on the approved fixes (emulator=%v)", t.Ticket, needsEmu)
+	logf("[%s] verify: agent will run build + tests on the approved fixes (device=%s)", t.Ticket, orNone(serial))
 	// Deliberately NOT resuming sess.SessionID: that session is the comment-fix
 	// run, possibly days old and predating current prompts. A resumed model
 	// repeats its own transcript's habits over fresh instructions - a field
@@ -132,7 +132,7 @@ func shipComments(ctx context.Context, t Task, h Hooks) Outcome {
 	// approval-prompted through, and certified off partial evidence. The
 	// certification stage gets a clean context every time; the diff on disk is
 	// the ground truth it needs, not the transcript.
-	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", needsEmu, true, t.AnthropicKey, logf, setState)
+	vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", serial, true, t.AnthropicKey, logf, setState)
 	if out, done := stopped(ctx, t, logf); done {
 		return out
 	}

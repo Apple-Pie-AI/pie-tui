@@ -47,9 +47,9 @@ func shipChange(ctx context.Context, t Task, h Hooks) Outcome {
 		// other report-finalizing call site uses (runner.go, reworkVerifyAndPark).
 		implReport, _ := agent.ReadReport(worktree)
 		plan, _ := agent.ReadPlan(worktree)
-		needsEmu, releaseEmu := acquireForRun(ctx, t, plan, logf)
+		serial, releaseEmu := acquireForRun(ctx, t, plan, logf)
 		defer releaseEmu()
-		vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", needsEmu, false, t.AnthropicKey, logf, setState)
+		vreport, verified, _, denials, verifyErrText := verifyWithAgent(ctx, t, worktree, "", serial, false, t.AnthropicKey, logf, setState)
 		if out, done := stopped(ctx, t, logf); done {
 			return out
 		}

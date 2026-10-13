@@ -184,7 +184,7 @@ func TestGoldenDashboard(t *testing.T) {
 			m.rows = buildRows(m.groups, m.expanded)
 			for i, r := range m.rows {
 				if r.kind == rowHeader && m.groups[r.group].label == "CLOSED" {
-					m.cursor = i + len(dashCommands)
+					m.cursor = i + listStart()
 				}
 			}
 			return m
@@ -203,7 +203,7 @@ func TestGoldenDashboard(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			m := dashModel()
 			m.width, m.height = tc.width, 34
-			m.cursor = len(dashCommands) // the first ticket
+			m.cursor = listStart() // the first ticket
 			if tc.setup != nil {
 				m = tc.setup(m)
 			}
@@ -235,7 +235,7 @@ func TestNoScreenOverflowsTheTerminal(t *testing.T) {
 		for _, view := range []hubView{viewDashboard, viewPalette} {
 			m := dashModel()
 			m.width, m.height, m.view = termW, 34, view
-			m.cursor = len(dashCommands)
+			m.cursor = listStart()
 			for _, ln := range strings.Split(stripAnsi(m.View()), "\n") {
 				if w := lipWidth(strings.TrimRight(ln, " ")); w > termW {
 					t.Errorf("view=%d w=%d: line runs to column %d: %q", view, termW, w, ln)
