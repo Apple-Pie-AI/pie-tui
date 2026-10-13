@@ -10,7 +10,7 @@ try {
 if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 
 const S = {repos: [], repo: "", file: "", slots: [], byId: {}, saved: {}, draft: {}, stages: [], workflows: [],
-  lint: {}, w: q0.get("w"), n: q0.get("n"), pending: false};
+  lint: {}, w: q0.get("w"), n: q0.get("n")};
 // ?stage=<id> (older links): open the first workflow that has that stage.
 const legacyStage = q0.get("stage");
 
@@ -178,7 +178,7 @@ function paintNode(el) {
   tag.textContent = d ? "● unsaved" : c ? `${c} custom` : "fixed";
 }
 
-// ---- a node: its prompt, or what happens there ----------------------------
+// ---- a node: what you can change there ------------------------------------
 
 function renderNode(n) {
   const el = $("#stage");
@@ -188,62 +188,63 @@ function renderNode(n) {
     el.innerHTML = `<div class="shead"><h2>${GLYPH[n.kind]} ${esc(n.title)}</h2></div><div class="info"><b>${what}</b><br>${esc(n.note || "")}</div>`;
     return;
   }
-  const st = stage(n.stage), sl = stageSlots(n.stage);
+  const st = stage(n.stage), sl = stageSlots(n.stage), shared = usedIn(st.id);
   el.innerHTML = `<div class="shead"><h2>◉ ${esc(st.title)}</h2><p class="lede">${esc(st.blurb)}</p>
-    <div class="smeta" id="smeta"></div></div>
-    ${st.fixed ? `<div class="notice">This prompt is fixed: it carries only your feedback and the contract around it, so there is nothing to customize. It is shown so you can see exactly what the agent receives.</div>` :
-      `<div class="notice">The whole prompt the agent receives, top to bottom, for a sample ticket. Edit the ✎ boxes in place; 🔒 text is the contract and stays as it is.${sl.length > 1 ? "" : ""}</div>`}
-    <div class="doc" id="doc"></div>`;
-  renderDoc(st);
-}
-
-function renderDoc(st) {
-  S.sig = sig(st);
-  $("#doc").innerHTML = st.blocks.map(b => {
-    if (!b.slot) return b.text.trim() ? `<div class="lk ${/\.agent\/|\.json/.test(b.text) ? "contract" : ""}"><pre>${esc(b.text.replace(/^\n+|\s+$/g, ""))}</pre></div>` : "";
-    const s = S.byId[b.slot];
-    return `<div class="ed" data-slot="${s.id}"><div class="ebar"><b>✎ ${esc(s.title)}</b><span class="badge"></span><span class="spacer"></span>
-      <button class="link reset">↺ reset to default</button><button class="link undo">⟲ undo</button><span class="count"></span><span class="help">${esc(s.help)}</span></div>
-      <textarea spellcheck="false" placeholder="${s.default ? "" : "Empty - add house rules, tools to prefer, things to avoid…"}">${esc(value(s.id))}</textarea><ul class="lint"></ul></div>`;
-  }).join("");
-  document.querySelectorAll(".ed").forEach(card => {
+    ${shared.length > 1 ? `<p class="shared">Shared by ${esc(shared.join(", "))}: a change here applies to all of them.</p>` : ""}</div>
+    ${st.fixed ? `<div class="howto">Nothing to customize in this step: it only passes on your own words, wrapped in rules Apple Pie needs. The full text is below if you want to see it.</div>` :
+      `<div class="howto"><b>${sl.length} field${sl.length > 1 ? "s" : ""} you can change.</b> Each one shows what it controls and what Apple Pie does by default.
+        Leave a field as it is to keep the default. Change it, then <b>Save</b> (⌘S): the next run of <b>${esc(S.repo.split("/").pop())}</b> uses your text.</div>
+      <div class="fields">${sl.map(field).join("")}</div>`}
+    <details class="full" ${st.fixed ? "open" : ""}><summary>Show the full prompt the agent receives <span id="flines"></span></summary>
+      <p class="fullnote">Your fields are highlighted; everything else is fixed - it is how Apple Pie tracks this step (the files the agent must write, permissions, budget and device rules).</p>
+      <pre class="prompt" id="full"></pre></details>`;
+  el.querySelectorAll(".field").forEach(card => {
     const id = card.dataset.slot, ta = $("textarea", card);
     const fit = () => { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + 2 + "px"; };
     ta.oninput = () => { S.draft[id] = ta.value; fit(); paintSlot(card); renderChrome(); refresh(); };
-    ta.onblur = () => { if (S.pending) setTimeout(() => { if (!document.activeElement?.matches?.("textarea")) rerender(); }, 0); };
     $(".reset", card).onclick = () => { ta.value = S.byId[id].default; ta.oninput(); };
     $(".undo", card).onclick = () => { delete S.draft[id]; ta.value = value(id); ta.oninput(); };
+    $(".example", card).onclick = () => { ta.value = S.byId[id].example; ta.oninput(); ta.focus(); };
     requestAnimationFrame(fit);
     paintSlot(card);
   });
-  paintMeta(st);
+  paintFull(st);
 }
 
-const sig = st => st.blocks.map(b => b.slot ? "S" + b.slot : "L" + b.text).join("\u0000");
-
-function paintMeta(st) {
-  const text = st.blocks.map(b => b.text).join(""), c = stageSlots(st.id).filter(s => isCustom(s.id)).length;
-  const m = $("#smeta");
-  if (m) m.innerHTML = `<span><i>${text.split("\n").length}</i> lines</span><span><i>${text.length.toLocaleString()}</i> chars</span>
-    <span>≈ <i>${Math.round(text.length / 4).toLocaleString()}</i> tokens</span><span><i>${c}</i> customized</span><span>used in: <i>${esc(usedIn(st.id).join(", "))}</i></span>`;
+function field(s) {
+  const extra = !s.default;
+  return `<div class="field" data-slot="${s.id}">
+    <div class="fhead"><b>${esc(s.title)}</b><span class="chip"></span></div>
+    <p class="what">${esc(s.help)}</p>
+    <p class="dflt"><span>By default</span>${esc(s.behavior)}</p>
+    <label class="tlabel">${extra ? "Your instructions" : "Text sent to the agent"}</label>
+    <textarea spellcheck="false" placeholder="${extra ? esc("e.g. " + s.example) : ""}">${esc(value(s.id))}</textarea>
+    <ul class="lint"></ul>
+    <div class="ffoot"><button class="link reset">↺ back to default</button><button class="link undo">⟲ undo changes</button>
+      <button class="link example" title="${esc(s.example)}">✦ ${extra ? "use the example" : "try an example"}</button><span class="spacer"></span><span class="count"></span></div>
+  </div>`;
 }
 
 function paintSlot(card) {
   const id = card.dataset.slot, c = isCustom(id), d = isDirty(id), v = value(id);
   card.classList.toggle("custom", c); card.classList.toggle("dirty", d);
-  $(".badge", card).textContent = d ? "● unsaved" : c ? "● customized" : (S.byId[id].default ? "default" : "empty");
+  const chip = $(".chip", card);
+  chip.textContent = d ? "● unsaved" : c ? "● customized" : (S.byId[id].default ? "default" : "not used");
   $(".count", card).textContent = `${v.length.toLocaleString()} / 8,192`;
   $(".reset", card).disabled = norm(v) === norm(S.byId[id].default);
   $(".undo", card).disabled = !d;
   $(".lint", card).innerHTML = (S.lint[id] || []).map(w => `<li>${esc(w)}</li>`).join("");
 }
 
-// rerender redraws the open prompt when its shape changed (team instructions
-// gained or lost their heading) - never while you are typing in it.
-function rerender() {
-  S.pending = false;
-  const w = S.w && flow(S.w), n = w && w.nodes.find(x => x.id === S.n);
-  if (n && n.stage) renderDoc(stage(n.stage));
+// paintFull renders the assembled prompt, your fields highlighted.
+function paintFull(st) {
+  const pre = $("#full");
+  if (!pre) return;
+  const text = st.blocks.map(b => b.text).join("");
+  $("#flines").textContent = `(${text.split("\n").length} lines)`;
+  pre.innerHTML = st.blocks.map(b => b.slot
+    ? `<span class="s ${isCustom(b.slot) ? "custom" : ""}" title="${esc(S.byId[b.slot].title)}">${esc(b.text)}</span>`
+    : esc(b.text)).join("").replace(/^\n+/, "");
 }
 
 function currentSlots() {
@@ -261,12 +262,8 @@ function refresh() {
       S.stages = r.stages; S.lint = r.lint || {};
       const w = S.w && flow(S.w), n = w && w.nodes.find(x => x.id === S.n);
       if (!n || !n.stage) return;
-      const st = stage(n.stage);
-      document.querySelectorAll(".ed").forEach(paintSlot);
-      paintMeta(st);
-      if (sig(st) !== S.sig) {
-        if (document.activeElement && document.activeElement.matches("textarea")) S.pending = true; else rerender();
-      }
+      document.querySelectorAll(".field").forEach(paintSlot);
+      paintFull(stage(n.stage));
     } catch (err) { toast(err.message, true); }
   }, 220);
 }

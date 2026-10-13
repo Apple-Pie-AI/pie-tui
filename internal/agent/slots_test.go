@@ -108,3 +108,13 @@ func TestSlotDefaultsAreNormalized(t *testing.T) {
 		}
 	}
 }
+
+// Every field the editor shows explains itself: what it does, the default
+// behavior in plain words, and an example.
+func TestEverySlotIsExplained(t *testing.T) {
+	for _, s := range Slots {
+		if s.Help == "" || s.Behavior == "" || s.Example == "" {
+			t.Errorf("%s: help/behavior/example missing - the editor would show a bare text box", s.ID)
+		}
+	}
+}

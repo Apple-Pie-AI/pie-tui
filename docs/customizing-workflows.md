@@ -30,12 +30,17 @@ Verify appears in three workflows. It is one prompt, so an edit there applies to
 
 ![A workflow and one of its prompts](assets/workflow-editor.png)
 
-**The prompt.** Click an agent step to see its whole prompt, top to bottom, exactly as the agent receives it (for a sample ticket):
+**The step.** Click an agent step to see only the fields you can change there. Each field shows:
 
-- **🔒 Locked text** reads in place.
-- **✎ Editable sections** sit where they appear in the prompt, with their current text in the box. Edit them, use **reset to default**, or **undo** unsaved edits.
-- **Extra team instructions** is an empty box on every editable step. Anything you write there goes under a `TEAM INSTRUCTIONS for this stage:` heading, placed before the step's output contract.
-- **Fixed steps** (Fix round, Revise fixes, Discuss) carry only your feedback and the contract around it. You can read them, but there is nothing to edit.
+- **What it controls.**
+- **By default:** what Apple Pie does if you leave it alone, in plain words.
+- **The text sent to the agent.** Edit it in place, go **back to default**, **undo changes**, or **try an example**.
+
+Every editable step also has an **Extra team instructions** field, empty by default. Anything you write there is added under a `TEAM INSTRUCTIONS for this stage:` heading, before the step's required output.
+
+The fixed steps (Fix round, Revise fixes, Discuss) only pass on your own words, so there's nothing to change in them.
+
+**Show the full prompt**, collapsed at the bottom of each step, shows the exact text the agent receives for a sample ticket, with your fields highlighted.
 
 Save with **Save changes** or <kbd>⌘S</kbd>. The next run of that repo uses the saved workflow; a run already in progress keeps the prompts it started with.
 

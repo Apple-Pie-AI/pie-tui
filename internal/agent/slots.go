@@ -21,6 +21,10 @@ type Slot struct {
 	Title   string `json:"title"`
 	Help    string `json:"help"`
 	Default string `json:"default"`
+	// For the editor (see slots_guide.go): what Apple Pie does when the slot
+	// is left alone, in plain words, and an example customization.
+	Behavior string `json:"behavior,omitempty"`
+	Example  string `json:"example,omitempty"`
 }
 
 // Stage is one step of the workflow, as the editor shows it.
@@ -82,7 +86,7 @@ const (
 // Defaults are today's prompt text word for word: an untouched workflow
 // produces exactly the prompts Apple Pie always sent.
 var Slots = func() []Slot {
-	base := []Slot{
+	base := []struct{ ID, Stage, Title, Help, Default string }{
 		{SlotPlanApproach, "plan", "How to plan", "How the agent should go about understanding the code and planning. It stays read-only whatever this says.",
 			"Understand the code and produce your implementation plan however you see fit,\nusing whatever tools and approach work best for you."},
 		{SlotPlanQuestions, "plan", "When to ask questions", "When the plan should stop and ask you instead of assuming. An empty questions list always means proceed.",
@@ -128,14 +132,14 @@ about your process.`},
 	for _, st := range Stages {
 		for _, s := range base {
 			if s.Stage == st.ID {
-				out = append(out, s)
+				out = append(out, Slot{ID: s.ID, Stage: s.Stage, Title: s.Title, Help: s.Help, Default: s.Default})
 			}
 		}
 		if st.Fixed {
 			continue
 		}
-		out = append(out, Slot{st.ID + extraSuffix, st.ID, teamInstructionsTitle,
-			"Anything else this stage should know: house rules, tools, what to avoid. Added under TEAM INSTRUCTIONS.", ""})
+		out = append(out, Slot{ID: st.ID + extraSuffix, Stage: st.ID, Title: teamInstructionsTitle,
+			Help: "Anything else this stage should know: house rules, tools, what to avoid. Added under TEAM INSTRUCTIONS."})
 	}
 	return out
 }()
